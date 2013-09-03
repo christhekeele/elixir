@@ -2,6 +2,8 @@ import Kernel, except: [access: 2]
 
 defprotocol Access do
   @moduledoc """
+  Retrieves an element from a data structure.
+
   The Access protocol is the underlying protocol invoked
   when the brackets syntax is used. For instance, `foo[bar]`
   is translated to `access foo, bar` which, by default,
@@ -14,14 +16,14 @@ defprotocol Access do
   @only [List, Record, Atom]
 
   @doc """
-  Receives the element being accessed and the access item.
+  Retrieves an element from a `container` identified by a `key`.
   """
   def access(container, key)
 end
 
 defimpl Access, for: List do
   @doc """
-  Access the given key in a tuple list.
+  Access the given `key` in a tuple `list`.
 
   ## Examples
 
@@ -46,9 +48,10 @@ end
 
 defimpl Access, for: Atom do
   @doc """
-  The access protocol can only be accessed by atoms
-  at compilation time. If we reach this, we should raise
-  an exception.
+  Raises an exception, since atoms can't be Accessed at runtime.
+
+  The Access protocol is only available to atoms at compilation time,
+  so we raise an informative exception if this occurs at any other point.
   """
   def access(nil, _) do
     nil
