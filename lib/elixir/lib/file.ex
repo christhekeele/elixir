@@ -1,6 +1,8 @@
 defrecord File.Stat, Record.extract(:file_info, from_lib: "kernel/include/file.hrl") do
   @moduledoc """
-  A record responsible to hold file information. Its fields are:
+  A representation of a file's properties.
+
+  Its fields are:
 
   * `size` - Size of file in bytes.
   * `type` - `:device`, `:directory`, `:regular`, `:other`. The type of the file.
@@ -56,9 +58,9 @@ end
 
 defmodule File do
   @moduledoc """
-  This module contains functions to manipulate files.
+  Manipulates files through an operating-system agnostic API.
 
-  Some of those functions are low-level, allowing the user
+  Some of tehse functions are low-level, allowing the user
   to interact with the file or IO devices, like `open/2`,
   `copy/3` and others. This module also provides higher
   level functions that works with filenames and have their naming
@@ -104,7 +106,7 @@ defmodule File do
   alias :filelib,  as: FL
 
   @doc """
-  Returns `true` if the path is a regular file.
+  Returns `true` if a `path` is a regular file.
 
   ## Examples
 
@@ -123,7 +125,8 @@ defmodule File do
   end
 
   @doc """
-  Returns `true` if the given path exists.
+  Returns `true` if a `path` exists.
+
   It can be regular file, directory, socket,
   symbolic link, named pipe or device file.
 
@@ -144,7 +147,10 @@ defmodule File do
   end
 
   @doc """
-  Tries to create the directory `path`. Missing parent directories are not created.
+  Tries to create the directory `path`.
+
+  Missing parent directories are not created.
+
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
 
   Typical error reasons are:
@@ -161,7 +167,9 @@ defmodule File do
   end
 
   @doc """
-  Same as `mkdir/1`, but raises an exception in case of failure. Otherwise `:ok`.
+  Same as `mkdir/1`, but raises an exception if it fails.
+
+  Returns `:ok` otherwise.
   """
   def mkdir!(path) do
     case mkdir(path) do
@@ -172,7 +180,10 @@ defmodule File do
   end
 
   @doc """
-  Tries to create the directory `path`. Missing parent directories are created.
+  Tries to create the directory `path`.
+
+  Missing parent directories are created.
+
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
 
   Typical error reasons are:
@@ -186,7 +197,9 @@ defmodule File do
   end
 
   @doc """
-  Same as `mkdir_p/1`, but raises an exception in case of failure. Otherwise `:ok`.
+  Same as `mkdir_p/1`, but raises an exception if it fails.
+
+  Returns `:ok` otherwise.
   """
   def mkdir_p!(path) do
     case mkdir_p(path) do
@@ -197,8 +210,10 @@ defmodule File do
   end
 
   @doc """
-  Returns `{:ok, binary}`, where `binary` is a binary data object that contains the contents
-  of `path`, or `{:error, reason}` if an error occurs.
+  Reads a `path`'s contents into a binary.
+
+  Returns `{:ok, binary}`, where `binary` is a binary data object that contains
+  the contents of `path`, or `{:error, reason}` if an error occurs.
 
   Typical error reasons:
 
@@ -217,6 +232,8 @@ defmodule File do
   end
 
   @doc """
+  Reads a `path`'s contents into a binary and raises an exception if it fails.
+
   Returns binary with the contents of the given filename or raises
   `File.Error` if an error occurs.
   """
@@ -230,8 +247,9 @@ defmodule File do
   end
 
   @doc """
-  Returns information about the `path`. If it exists, it
-  returns a `{ :ok, info }` tuple, where info is a
+  Returns information about a `path`.
+
+  If it exists, it returns a `{ :ok, info }` tuple, where info is a
   `File.Info` record. Retuns `{ :error, reason }` with
   the same reasons as `read/1` if a failure occurs.
 
@@ -253,8 +271,10 @@ defmodule File do
   end
 
   @doc """
-  Same as `stat/2` but returns the `File.Stat` directly and
-  throws `File.Error` if an error is returned.
+  Same as `stat/2` but raises an exception if it fails.
+
+  Either returns `File.Stat` directly or throws `File.Error`
+  if an error is returned.
   """
   def stat!(path, opts // []) do
     case stat(path, opts) do
@@ -265,8 +285,9 @@ defmodule File do
   end
 
   @doc """
-  Writes the given `File.Stat` back to the filesystem at the given
-  path. Returns `:ok` or `{ :error, reason }`.
+  Writes the given `File.Stat` back to the filesystem at a `path`.
+
+  Returns `:ok` or `{ :error, reason }`.
   """
   def write_stat(path, File.Stat[] = stat, opts // []) do
     F.write_file_info(path, set_elem(stat, 0, :file_info), opts)
@@ -274,6 +295,7 @@ defmodule File do
 
   @doc """
   Same as `write_stat/3` but raises an exception if it fails.
+
   Returns `:ok` otherwise.
   """
   def write_stat!(path, File.Stat[] = stat, opts // []) do
@@ -285,8 +307,9 @@ defmodule File do
   end
 
   @doc """
-  Updates modification time (mtime) and access time (atime) of
-  the given file. File is created if it doesn’t exist.
+  Updates modification time (mtime) and access time (atime) of the file at `path`.
+
+  File is created if it doesn’t exist.
   """
   def touch(path, time // :calendar.local_time) do
     case F.change_time(path, time) do
@@ -300,6 +323,7 @@ defmodule File do
 
   @doc """
   Same as `touch/2` but raises an exception if it fails.
+
   Returns `:ok` otherwise.
   """
   def touch!(path, time // :calendar.local_time) do
@@ -337,8 +361,9 @@ defmodule File do
   end
 
   @doc """
-  The same as `copy/3` but raises an `File.CopyError` if it fails.
-  Returns the `bytes_copied` otherwise.
+  The same as `copy/3` but raises an exception if it fails.
+
+  Either returns the `bytes_copied` or throws `File.CopyError` if it fails.
   """
   def copy!(source, destination, bytes_count // :infinity) do
     case copy(source, destination, bytes_count) do
@@ -350,7 +375,7 @@ defmodule File do
   end
 
   @doc """
-  Copies the contents in `source` to `destination` preserving its mode.
+  Copies the contents in `source` to `destination`, preserving its mode.
 
   Similar to the command `cp` in Unix systems, this function
   behaves differently depending if `destination` is a directory
@@ -384,8 +409,9 @@ defmodule File do
   end
 
   @doc """
-  The same as `cp/3`, but raises `File.CopyError` if it fails.
-  Returns the list of copied files otherwise.
+  The same as `cp/3`, but raises an exception if it fails.
+
+  Returns the list of copied files, or throws `File.CopyError` if it fails.
   """
   def cp!(source, destination, callback // fn(_, _) -> true end) do
     case cp(source, destination, callback) do
@@ -398,8 +424,9 @@ defmodule File do
   end
 
   @doc %S"""
-  Copies the contents in source to destination.
-  Similar to the command `cp -r` in Unix systems,
+  Copies the contents in `source` to `destination`.
+
+  While similar to the command `cp -r` in Unix systems,
   this function behaves differently depending
   if `source` and `destination` are a file or a directory.
 
@@ -459,8 +486,9 @@ defmodule File do
   end
 
   @doc """
-  The same as `cp_r/3`, but raises `File.CopyError` if it fails.
-  Returns the list of copied files otherwise.
+  The same as `cp_r/3`, but raises an exception if it fails.
+
+  Returns the list of copied files, or throws `File.CopyError` if it fails.
   """
   def cp_r!(source, destination, callback // fn(_, _) -> true end) do
     case cp_r(source, destination, callback) do
@@ -555,8 +583,10 @@ defmodule File do
   end
 
   @doc """
-  Writes `content` to the file `path`. The file is created if it
-  does not exist. If it exists, the previous contents are overwritten.
+  Writes `content` to the file `path`.
+
+  The file is created if it does not exist.
+  If it exists, the previous contents are overwritten.
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
 
   Typical error reasons are:
@@ -573,7 +603,9 @@ defmodule File do
   end
 
   @doc """
-  Same as `write/3` but raises an exception if it fails, returns `:ok` otherwise.
+  Same as `write/3` but raises an exception if it fails.
+
+  Returns `:ok` otherwise.
   """
   def write!(path, content, modes // []) do
     case F.write_file(path, content, modes) do
@@ -585,6 +617,7 @@ defmodule File do
 
   @doc """
   Tries to delete the file `path`.
+
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
 
   Typical error reasons are:
@@ -610,7 +643,9 @@ defmodule File do
   end
 
   @doc """
-  Same as `rm/1`, but raises an exception in case of failure. Otherwise `:ok`.
+  Same as `rm/1`, but raises an exception in case of failure.
+
+  Returns `:ok` otherwise.
   """
   def rm!(path) do
     case rm(path) do
@@ -621,7 +656,8 @@ defmodule File do
   end
 
   @doc """
-  Tries to delete the dir at `path`.
+  Tries to delete the dir at a `path`.
+
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
 
   ## Examples
@@ -638,7 +674,9 @@ defmodule File do
   end
 
   @doc """
-  Same as `rmdir/1`, but raises an exception in case of failure. Otherwise `:ok`.
+  Same as `rmdir/1`, but raises an exception in case of failure.
+
+  Returns `:ok` otherwise.
   """
   def rmdir!(path) do
     case rmdir(path) do
@@ -649,7 +687,8 @@ defmodule File do
   end
 
   @doc """
-  Remove files and directories recursively at the given `path`.
+  Remove files and directories recursively at a `path`.
+
   Symlinks are not followed but simply removed, non-existing
   files are simply ignored (i.e. doesn't make this function fail).
 
@@ -737,8 +776,10 @@ defmodule File do
   end
 
   @doc """
-  Same as `rm_rf/1` but raises `File.Error` in case of failures,
-  otherwise the list of files or directories removed.
+  Same as `rm_rf/1` but raises an exception if it fails.
+
+  Returns the list of files or directories removed, or throws `File.Error`
+  if it fails.
   """
   def rm_rf!(path) do
     case rm_rf(path) do
@@ -751,7 +792,7 @@ defmodule File do
   end
 
   @doc """
-  Opens the given `path` according to the given list of modes.
+  Opens the given `path` according to the given list of `modes`.
 
   In order to write and read files, one must use the functions
   in the `IO` module. By default, a file is opened in binary mode
@@ -820,7 +861,7 @@ defmodule File do
   end
 
   @doc """
-  Similar to `open/2` but expects a function as last argument.
+  Similar to `open/2` but expects a `function` as last argument.
 
   The file is opened, given to the function as argument and
   automatically closed after the function returns, regardless
@@ -854,6 +895,7 @@ defmodule File do
 
   @doc """
   Same as `open/2` but raises an error if file could not be opened.
+
   Returns the `io_device` otherwise.
   """
   def open!(path, modes // []) do
@@ -866,6 +908,7 @@ defmodule File do
 
   @doc """
   Same as `open/3` but raises an error if file could not be opened.
+
   Returns the function result otherwise.
   """
   def open!(path, modes, function) do
@@ -877,10 +920,14 @@ defmodule File do
   end
 
   @doc """
-  Gets the current working directory. In rare circumstances, this function can
-  fail on Unix. It may happen if read permission does not exist for the parent
-  directories of the current directory. For this reason, returns `{ :ok, cwd }`
-  in case of success, `{ :error, reason }` otherwise.
+  Gets the current working directory.
+
+  In rare circumstances, this function can fail on Unix.
+  It may happen if read permission does not exist for the parent
+  directories of the current directory.
+
+  For this reason, returns `{ :ok, cwd }` in case of success,
+  `{ :error, reason }` otherwise.
   """
   def cwd() do
     case F.get_cwd do
@@ -901,8 +948,9 @@ defmodule File do
   end
 
   @doc """
-  Sets the current working directory. Returns `:ok` if successful,
-  `{ :error, reason }` otherwise.
+  Sets the current working directory.
+
+  Returns `:ok` if successful, `{ :error, reason }` otherwise.
   """
   def cd(path) do
     F.set_cwd(path)
@@ -920,8 +968,10 @@ defmodule File do
   end
 
   @doc """
+  Executes a `function` at a `path`.
+
   Changes the current directory to the given `path`,
-  executes the given function and then revert back
+  executes the function and then revert back
   to the previous path regardless if there is an exception.
 
   Raises an error if retrieving or changing the current
@@ -938,7 +988,7 @@ defmodule File do
   end
 
   @doc """
-  Returns list of files in the given directory.
+  Lists the files in a directory `path`.
 
   It returns `{ :ok, [files] }` in case of success,
   `{ :error, reason }` otherwise.
@@ -951,8 +1001,7 @@ defmodule File do
   end
 
   @doc """
-  The same as `ls/1` but raises `File.Error`
-  in case of an error.
+  The same as `ls/1` but raises `File.Error` in case of an error.
   """
   def ls!(dir // ".") do
     case ls(dir) do
@@ -963,8 +1012,9 @@ defmodule File do
   end
 
   @doc """
-  Closes the file referenced by `io_device`. It mostly returns `:ok`, except
-  for some severe errors such as out of memory.
+  Closes the file referenced by `io_device`.
+
+  It mostly returns `:ok`, except for some severe errors such as out of memory.
 
   Note that if the option `:delayed_write` was used when opening the file,
   `close/1` might return an old write error and not even try to close the file.
@@ -975,6 +1025,8 @@ defmodule File do
   end
 
   @doc """
+  Sets up a stream to read a `file`'s contents.
+
   Opens the given `file` with the given `mode` and returns
   a stream for each `:line` (default) or for a given number
   of bytes given by `line_or_bytes`.
@@ -994,6 +1046,8 @@ defmodule File do
   end
 
   @doc """
+  Sets up a binstream to read a `file`'s contents.
+
   Opens the given `file` with the given `mode` and returns
   a binstream for each `:line` (default) or for a given number
   of bytes given by `line_or_bytes`.
@@ -1014,6 +1068,7 @@ defmodule File do
 
   @doc """
   Changes the unix file `mode` for a given `file`.
+
   Returns `:ok` on success, or `{:error, reason}`
   on failure.
   """
@@ -1022,7 +1077,9 @@ defmodule File do
   end
 
   @doc """
-  Same as `chmod/2`, but raises an exception in case of failure. Otherwise `:ok`.
+  Same as `chmod/2`, but raises an exception in case of failure.
+
+  Returns `:ok` otherwise.
   """
   def chmod!(file, mode) do
     case chmod(file, mode) do
@@ -1033,16 +1090,18 @@ defmodule File do
   end
 
   @doc """
-  Changes the user group given by the group id `gid`
-  for a given `file`. Returns `:ok` on success, or
-  `{:error, reason}` on failure.
+  Changes the user group given by the group id `gid` for a given `file`.
+
+  Returns `:ok` on success, or `{:error, reason}` on failure.
   """
   def chgrp(file, gid) do
     F.change_group(file, gid)
   end
 
   @doc """
-  Same as `chgrp/2`, but raises an exception in case of failure. Otherwise `:ok`.
+  Same as `chgrp/2`, but raises an exception in case of failure.
+
+  Returns `:ok` otherwise.
   """
   def chgrp!(file, gid) do
     case chgrp(file, gid) do
@@ -1053,16 +1112,18 @@ defmodule File do
   end
 
   @doc """
-  Changes the owner given by the user id `gid`
-  for a given `file`. Returns `:ok` on success,
-  or `{:error, reason}` on failure.
+  Changes the owner given by the user id `gid` for a given `file`.
+
+  Returns `:ok` on success, or `{:error, reason}` on failure.
   """
   def chown(file, uid) do
     F.change_owner(file, uid)
   end
 
   @doc """
-  Same as `chown/2`, but raises an exception in case of failure. Otherwise `:ok`.
+  Same as `chown/2`, but raises an exception in case of failure.
+
+  Returns `:ok` otherwise.
   """
   def chown!(file, gid) do
     case chown(file, gid) do
