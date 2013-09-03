@@ -1,6 +1,10 @@
 defmodule Behaviour do
   @moduledoc """
-  A convenience module for defining behaviours.
+  Defines and enforces a functional interface to be reused in similar modules.
+
+  The Behaviour module makes using
+  [OTP Behaviours](http://www.erlang.org/doc/design_principles/des_princ.html#id58199)
+  and callback functions easier.
   Behaviours can be referenced by other modules
   in order to ensure they implement the proper
   callbacks.
@@ -43,7 +47,7 @@ defmodule Behaviour do
   """
 
   @doc """
-  Defines a callback according to the given type specification.
+  Defines a callback according to a type specification.
   """
   defmacro defcallback({ :::, _, [fun, return] }) do
     do_defcallback(fun, return, __CALLER__)
@@ -54,7 +58,7 @@ defmodule Behaviour do
   end
 
   @doc """
-  Defines a macro callback according to the given type specification.
+  Defines a macro callback according to a type specification.
   """
   defmacro defmacrocallback({ :::, _, [fun, return] }) do
     do_defmacrocallback(fun, return, __CALLER__)
