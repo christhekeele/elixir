@@ -1,6 +1,7 @@
 defmodule Bitwise do
   @moduledoc """
-  This module provide macros and operators for bitwise operators.
+  A collection of macros and operators for bitwise operations.
+
   These macros can be used in guards.
 
   The easiest way to use is to simply import them into
