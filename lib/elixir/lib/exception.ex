@@ -96,23 +96,22 @@ defexception Enum.EmptyError, message: "empty error"
 
 defmodule Exception do
   @moduledoc """
-  Several convenience functions to work with and pretty print
-  exceptions and stacktraces.
+  Helpers for working with and pretty printing exceptions and stacktraces.
   """
 
   @doc """
-  Normalizes an exception, converting Erlang exceptions
-  to Elixir exceptions. It takes the kind spilled by
-  `catch` as an argument as a convenience for converting only
-  `:errors`, ignorning the others.
+  Normalizes an exception, converting Erlang exceptions to Elixir exceptions.
+
+  It takes the kind spilled by `catch` as an argument as a convenience for
+  converting only `:errors`, ignorning the others.
   """
   def normalize(:error, exception), do: normalize(exception)
   def normalize(_kind, other), do: other
 
   @doc """
-  Normalizes an exception, converting Erlang exceptions
-  to Elixir exceptions. Useful when interfacing Erlang
-  code with Elixir code.
+  Normalizes an exception, converting Erlang exceptions to Elixir exceptions.
+
+  Useful when interfacing Erlang code with Elixir code.
   """
   def normalize(exception) when is_exception(exception) do
     exception
@@ -165,7 +164,7 @@ defmodule Exception do
   end
 
   @doc """
-  Receives a tuple representing a stacktrace entry and formats it.
+  Formats a tuple representing a stacktrace entry.
 
   The current working directory may be given as an argument,
   otherwise one is automatically retrieved.
@@ -219,6 +218,7 @@ defmodule Exception do
 
   @doc """
   Formats the caller, i.e. the first entry in the stacktrace.
+
   Notice that due to tail call optimization, the stacktrace
   may not report the direct caller of the function.
   """
@@ -237,8 +237,9 @@ defmodule Exception do
   end
 
   @doc """
-  Receives an anonymous function and arity and formats it as
-  shown in stacktraces. The arity may also be a list of arguments.
+  Formats an anonymous function and arity and formats it as stacktrace entry.
+
+  The arity may also be a list of arguments.
 
   ## Examples
 
@@ -256,9 +257,9 @@ defmodule Exception do
   end
 
   @doc """
-  Receives a module, fun and arity and formats it
-  as shown in stacktraces. The arity may also be a list
-  of arguments.
+  Formats a module, fun and arity and formats it as a stacktrace entry.
+
+  The arity may also be a list of arguments.
 
   ## Examples
 
@@ -285,6 +286,7 @@ defmodule Exception do
 
   @doc """
   Formats the given file and line as shown in stacktraces.
+
   If any of the values are nil, they are omitted.
 
   The current working directory may be given as an argument,
