@@ -7,7 +7,7 @@ process easy and effective for everyone involved!
 
 Use the issues tracker for:
 
-* [bug reports](#bugs-reports)
+* [bug reports](#bug-reports)
 * [submitting pull requests](#pull-requests)
 
 Please **do not** use the issues tracker for personal support requests nor feature requests. Support requests should be send to:
@@ -91,70 +91,17 @@ You can run all tests in the root directory with `make test` and you can
 also run tests for a specific framework `make test_#{NAME}`, for example,
 `make test_ex_unit`.
 
+If you're contributing documentation, include examples when possible,
+preferably in a form that works with doctests. This makes it easy to test the
+examples so that they don't go stale and examples are often a great help in
+explaining what a function does.
+
 From time to time, your tests may fail in an existing Elixir checkout and
 may require a clean start by running `make clean compile`. You can always
 check [the official build status on Travis-CI](https://travis-ci.org/elixir-lang/elixir).
 
 With tests running and passing, you are ready to contribute to Elixir and
 send your pull requests.
-
-## Contributing Documentation
-
-Code documentation (`@doc`, `@moduledoc`, `@typedoc`) has a special convention:
-the first paragraph is considered to be a short summary.
-
-For functions, macros and callbacks say what it will do. For example write
-something like:
-
-```elixir
-@doc """
-Return only those elements for which `fun` is true.
-
-...
-"""
-def filter(collection, fun) ...
-```
-
-For modules, records, protocols and types say what it is. For example write
-something like:
-
-```elixir
-defrecord File.Stat, [...] do
-  @moduledoc """
-  Information about a file.
-
-  ...
-  """
-end
-```
-
-Keep in mind that the first paragraph might show up in a summary somewhere, long
-texts in the first paragraph create very ugly summaries. As a rule of thumb
-anything longer than 80 characters is too long.
-
-Try to keep unneccesary details out of the first paragraph, it's only there to
-give a user a quick idea of what the documented "thing" does/is. The rest of the
-documentation string can contain the details, for example when a value and when
-`nil` is returned.
-
-If possible include examples, preferably in a form that works with doctests. For
-example:
-
-```elixir
-@doc """
-Return only those elements for which `fun` is true.
-
-## Examples
-
-    iex> Enum.filter([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
-    [2]
-
-"""
-def filter(collection, fun) ...
-```
-
-This makes it easy to test the examples so that they don't go stale and examples
-are often a great help in explaining what a function does. 
 
 ## Pull requests
 
@@ -172,7 +119,9 @@ project's developers might not want to merge into the project.
 
 Please adhere to the coding conventions in the project (indentation,
 accurate comments, etc.) and don't forget to add your own tests and
-documentation. When working with git, we recommend the following process
+documentation. These conventions are detailed in [STYLEGUIDES.md](STYLEGUIDES.md), but in general just emulate the code around you.
+
+When working with git, we recommend the following process
 in order to craft an excellent pull request:
 
 1. [Fork](http://help.github.com/fork-a-repo/) the project, clone your fork,
