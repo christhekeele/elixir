@@ -6,23 +6,23 @@ defmodule Code do
   end
 
   @moduledoc """
-  The Code module is responsible for managing code compilation,
-  code evaluation and code loading.
+  Tools for compiling, evaluating, and loading code.
 
-  It complements [Erlang's code module](http://www.erlang.org/doc/man/code.html)
-  to add behavior which is specific to Elixir.
+  It augments [Erlang's code module](http://www.erlang.org/doc/man/code.html)
+  with Elixir-specific behaviour.
 
   """
 
   @doc """
-  Returns all loaded files.
+  Lists all loaded files.
   """
   def loaded_files do
     :elixir_code_server.call :loaded
   end
 
   @doc """
-  Removes the given files from the loaded files list.
+  Removes provided `files` from the loaded files list.
+
   The modules defined in the file are not removed,
   calling this function only removes them from the list,
   allowing them to be required again.
@@ -32,7 +32,8 @@ defmodule Code do
   end
 
   @doc """
-  Appends a path to the Erlang VM code path.
+  Appends a `path` to the Erlang VM code path.
+
   The path is expanded with `Path.expand/1` before being appended.
   """
   def append_path(path) do
@@ -40,7 +41,8 @@ defmodule Code do
   end
 
   @doc """
-  Prepends a path to the Erlang VM code path.
+  Prepends a `path` to the Erlang VM code path.
+
   The path is expanded with `Path.expand/1` before being prepended.
   """
   def prepend_path(path) do
@@ -48,7 +50,8 @@ defmodule Code do
   end
 
   @doc """
-  Deletes a path from the Erlang VM code path.
+  Deletes a `path` from the Erlang VM code path.
+
   The path is expanded with `Path.expand/1` before being deleted.
   """
   def delete_path(path) do
@@ -56,9 +59,12 @@ defmodule Code do
   end
 
   @doc """
-  Evaluates the contents given by `string`. The second argument is 
-  a keyword list of variable bindings, followed by a keyword list of
-  environment options. Those options can be:
+  Evaluates a `string` of code.
+
+  It accepts an optional keyword list of variable bindings,
+  and an optional keyword list of environment options.
+
+  The environment options may be:
 
   * `:file` - the file to be considered in the evaluation
   * `:line` - the line on which the script starts
@@ -95,7 +101,7 @@ defmodule Code do
       iex> Code.eval_string("c = a + b", [a: 1, b: 2], __ENV__)
       {3, [a: 1, b: 2, c: 3]}
 
-      iex> Code.eval_string("a = a + b", [a: 1, b: 2])          
+      iex> Code.eval_string("a = a + b", [a: 1, b: 2])
       {3, [a: 3, b: 2]}
 
   For convenience, you can pass `__ENV__` as the `opts` argument and
@@ -123,7 +129,7 @@ defmodule Code do
   end
 
   @doc """
-  Evaluates the quoted contents.
+  Evaluates a `quoted` code expression.
 
   See `eval_string/3` for a description of arguments and return values.
 
@@ -196,8 +202,10 @@ defmodule Code do
   end
 
   @doc """
-  Converts the given string to its quoted form. Returns `{ :ok, quoted_form }`
-  if it succeeds, `{ :error, { line, error, token } }` otherwise.
+  Tries to convert a `string` to its quoted form.
+
+  Returns `{ :ok, quoted_form }` if it succeeds,
+  `{ :error, { line, error, token } }` otherwise.
 
   ## Options
 
@@ -227,10 +235,11 @@ defmodule Code do
   end
 
   @doc """
-  Converts the given string to its quoted form. It returns the ast if it succeeds,
-  raises an exception otherwise. The exception is a `TokenMissingError`
-  in case a token is missing (usually because the expression is incomplete),
-  `SyntaxError` otherwise.
+  Converts a `string` to its quoted form.
+
+  It returns the ast if it succeeds, raises an exception otherwise.
+  The exception is a `TokenMissingError` in case a token is missing
+  (usually because the expression is incomplete), `SyntaxError` otherwise.
 
   Check `string_to_quoted/2` for options information.
   """
@@ -246,10 +255,12 @@ defmodule Code do
   defp unpack_quote(line, forms),                            do: { :__block__, [line: line], forms }
 
   @doc """
-  Loads the given `file`. Accepts `relative_to` as an argument to tell where
-  the file is located. If the file was already required/loaded, loads it again.
-  It returns a list of tuples `{ ModuleName, <<byte_code>> }`, one tuple for each
-  module defined in the file.
+  Loads a `file` and its modules.
+
+  Accepts `relative_to` as an argument to tell where the file is located.
+  If the file was already required/loaded, loads it again.
+  It returns a list of tuples `{ ModuleName, <<byte_code>> }`,
+  one tuple for each module defined in the file.
 
   Notice that if `load_file` is invoked by different processes
   concurrently, the target file will be invoked concurrently
@@ -266,9 +277,11 @@ defmodule Code do
   end
 
   @doc """
-  Requires the given `file`. Accepts `relative_to` as an argument to tell where
-  the file is located. The return value is the same as that of `load_file/2`. If
-  the file was already required/loaded, doesn't do anything and returns nil.
+  Requires the given `file`.
+
+  Accepts `relative_to` as an argument to tell where the file is located.
+  The return value is the same as that of `load_file/2`.
+  If the file was already required/loaded, doesn't do anything and returns nil.
 
   Notice that if `require_file` is invoked by different processes concurrently,
   the first process to invoke `require_file` acquires a lock and the remaining
@@ -294,7 +307,8 @@ defmodule Code do
   end
 
   @doc """
-  Loads the compilation options from the code server.
+  Displays the code server's global compilation options.
+
   Check `compiler_options/1` for more information.
   """
   def compiler_options do
@@ -302,8 +316,7 @@ defmodule Code do
   end
 
   @doc """
-  Sets compilation options. These options are global
-  since they are stored by Elixir's Code Server.
+  Sets the code server's global compilation options.
 
   Available options are:
 
@@ -314,8 +327,8 @@ defmodule Code do
     This allows a developer to reconstruct the original source
     code, for such reasons, `false` by default;
 
-  * `:ignore_module_conflict` - when `true`, override modules that were already defined
-    without raising errors, `false` by default;
+  * `:ignore_module_conflict` - when `true`, override modules that were already
+    defined without raising errors, `false` by default;
 
   * `:warnings_as_errors` - cause compilation to fail when warnings are generated;
 
@@ -325,9 +338,10 @@ defmodule Code do
   end
 
   @doc """
-  Compiles the given string and returns a list of tuples where
-  the first element is the module name and the second one is its
-  binary.
+  Compiles a `string` and returns the result.
+
+  It returns a list of tuples where the first element is the compiled module's
+  name and the second one is its binary.
 
   For compiling many files at once, check `Kernel.ParallelCompiler.files/2`.
   """
@@ -336,22 +350,24 @@ defmodule Code do
   end
 
   @doc """
-  Compiles the quoted expression and returns a list of tuples where
-  the first element is the module name and the second one is its
-  binary.
+  Compiles the `quoted` expression and returns the result.
+
+  It returns a list of tuples
+  where the first element is the compiled module's name
+  and the second one is its binary.
   """
   def compile_quoted(quoted, file // "nofile") when is_binary(file) do
     :elixir_compiler.quoted [quoted], file
   end
 
   @doc """
-  Ensures the given module is loaded. If the module is already
-  loaded, it works as no-op. If the module was not yet loaded,
-  it tries to load it.
+  Ensures a `module` is loaded.
 
-  If it succeeds loading the module, it returns
-  `{ :module, module }`. If not, returns `{ :error, reason }` with
-  the error reason.
+  If the module is already loaded, it works as no-op.
+  If the module is not yet loaded, it tries to load it.
+
+  If it succeeds in loading the module, it returns `{ :module, module }`.
+  If not, it returns `{ :error, reason }` with the error reason.
 
   ## Code loading on the Erlang VM
 
@@ -362,7 +378,7 @@ defmodule Code do
   modules need to be loaded upfront or explicitly.
 
   Therefore, this function is used to check if a module is loaded
-  before using it and allows one to react accordingly. For example, the `URI` 
+  before using it and allows one to react accordingly. For example, the `URI`
   module uses this function to check if a specific parser exists for a given
   URI scheme.
 
@@ -387,22 +403,24 @@ defmodule Code do
   end
 
   @doc """
-  Similar to `ensure_loaded/1`, but returns a boolean in case
-  it could be ensured or not.
+  Ensures a `module` is loaded, with feedback.
+
+  It calls `ensure_loaded/1` and returns true or false depending on
+  whether or not it was successful.
   """
   def ensure_loaded?(module) do
     match?({ :module, ^module }, ensure_loaded(module))
   end
 
   @doc """
-  Ensures the given module is compiled and loaded. If the module
-  is already loaded, it works as no-op. If the module was not
-  loaded yet, it checks if it needs to be compiled first and 
-  then tries to load it.
+  Ensures a `module` is compiled and loaded.
 
-  If it succeeds loading the module, it returns
-  `{ :module, module }`. If not, returns `{ :error, reason }` with
-  the error reason.
+  If the module is already loaded, it works as no-op.
+  If the module was not loaded yet,
+  it checks if it needs to be compiled first and then tries to load it.
+
+  If it succeeds loading the module, it returns `{ :module, module }`.
+  If not, returns `{ :error, reason }` with the error reason.
 
   Check `ensure_loaded/1` for more information on module loading
   and when to use `ensure_loaded/1` or `ensure_compiled/1`.
@@ -425,8 +443,10 @@ defmodule Code do
   end
 
   @doc """
-  Similar to `ensure_compiled/1`, but returns a boolean in case
-  it could be ensured or not.
+  Ensures a `module` is compiled and loaded, with feedback.
+
+  It calls `ensure_compiled/1` and returns true or false depending on
+  whether or not it was successful.
   """
   def ensure_compiled?(module) do
     match?({ :module, ^module }, ensure_compiled(module))
@@ -434,7 +454,7 @@ defmodule Code do
 
   ## Helpers
 
-  # Finds the file given the relative_to path.
+  # Finds a `file` given a `relative_to` path.
   # If the file is found, returns its path in binary, fails otherwise.
   defp find_file(file, relative_to) do
     file = if relative_to do
