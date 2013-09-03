@@ -1,6 +1,6 @@
 defprotocol Enumerable do
   @moduledoc """
-  This is the protocol used by the `Enum` module.
+  Makes collections traversable through the `Enum` module.
 
   Usually, when you invoke a function in the module `Enum`, the first argument
   passed to it is a collection which is forwarded to this protocol in order to
@@ -18,9 +18,13 @@ defprotocol Enumerable do
   @only [List, Record, Function]
 
   @doc """
-  This function performs the reducing operation on a given collection. It
-  returns the accumulated value of applying the given function `fun` on every
-  element with the accumulated value.
+  Condenses elements of a `collection` into a single value.
+
+  It calculates the accumulated value by applying a function `fun` on each
+  element. Every step of the calculation invokes the function with the element
+  and the result of the previous step, with the initial value of `acc`.
+
+  This "reducing operation" is the basis of all other enumerations.
 
   As an example, here is the implementation of `reduce` for lists:
 
@@ -39,12 +43,12 @@ defprotocol Enumerable do
   def reduce(collection, acc, fun)
 
   @doc """
-  The function is used to check if a value exists within the collection.
+  Checks if a `collection` contains a `value`.
   """
   def member?(collection, value)
 
   @doc """
-  The function is used to retrieve the collection's size.
+  Retrieves a `collection`'s size.
   """
   def count(collection)
 end
@@ -53,8 +57,9 @@ defmodule Enum do
   import Kernel, except: [max: 2, min: 2]
 
   @moduledoc """
-  Provides a set of algorithms that enumerate over collections according to the
-  `Enumerable` protocol:
+  Provides a set of algorithms that can traverse or manipulate collections.
+
+  The collection must have implemented the `Enumerable` protocol.
 
       iex> Enum.map([1, 2, 3], fn(x) -> x * 2 end)
       [2,4,6]
@@ -87,7 +92,7 @@ defmodule Enum do
   @type default :: any
 
   @doc """
-  Checks if `value` exists within the `collection`.
+  Checks if `value` exists within a `collection`.
 
   ## Examples
 
@@ -103,7 +108,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the collection's size.
+  Returns a collection's size.
 
   ## Examples
 
@@ -117,8 +122,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the count of items in the collection for which
-  `fun` returns `true`.
+  Returns the count of items in a `collection` for which `fun` returns `true`.
 
   ## Examples
       iex> Enum.count([1, 2, 3, 4, 5], fn(x) -> rem(x, 2) == 0 end)
@@ -133,7 +137,9 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given `fun` for each item in the `collection` and returns `false`
+  Determines if a `fun` holds true for every value in a `collection`.
+
+  Invokes `fun` for each item in the `collection` and returns `false`
   if at least one invocation returns `false`. Otherwise returns `true`.
 
   ## Examples
@@ -171,6 +177,8 @@ defmodule Enum do
   end
 
   @doc """
+  Determines if a `fun` holds true for at least one value in a `collection`.
+
   Invokes the given `fun` for each item in the `collection` and returns `true` if
   at least one invocation returns `true`. Returns `false` otherwise.
 
@@ -209,7 +217,8 @@ defmodule Enum do
   end
 
   @doc """
-  Finds the element at the given index (zero-based).
+  Finds the element at a zero-based index in `collection`.
+
   Returns `default` if index is out of bounds.
 
   Expects an ordered collection.
@@ -236,7 +245,7 @@ defmodule Enum do
   end
 
   @doc """
-  Given an enumerable of enumerables, concatenate the enumerables into a single list.
+  Collects an enumerable of `enumerables` into a single ordered list.
 
   ## Examples
 
@@ -253,7 +262,7 @@ defmodule Enum do
   end
 
   @doc """
-  Concatenates the enumerable on the right with the enumerable on the left.
+  Concatenates the enumerable on the `left` with the enumerable on the `right`.
 
   This function produces the same result the `++` operator for lists.
 
@@ -283,6 +292,7 @@ defmodule Enum do
 
   @doc """
   Drops the first `count` items from `collection`.
+
   Expects an ordered collection.
 
   ## Examples
@@ -315,6 +325,7 @@ defmodule Enum do
 
   @doc """
   Drops items at the beginning of `collection` while `fun` returns `true`.
+
   Expects an ordered collection.
 
   ## Examples
@@ -336,6 +347,7 @@ defmodule Enum do
 
   @doc """
   Invokes the given `fun` for each item in the `collection`.
+
   Returns `:ok`.
 
   ## Examples
@@ -383,7 +395,8 @@ defmodule Enum do
   end
 
   @doc """
-  Finds the element at the given index (zero-based).
+  Finds the element at a zero-based index.
+
   Returns `{ :ok, element }` if found, otherwise `:error`.
 
   Expects an ordered collection.
@@ -423,7 +436,8 @@ defmodule Enum do
   end
 
   @doc """
-  Finds the element at the given index (zero-based).
+  Finds the element at a zero-based index.
+
   Raises `OutOfBoundsError` if the given position
   is outside the range of the collection.
 
@@ -448,8 +462,7 @@ defmodule Enum do
   end
 
   @doc """
-  Filters the collection, i.e. returns only those elements
-  for which `fun` returns `true`.
+  Filters a `collection` by returning the elements for which `fun` returns `true`.
 
   ## Examples
 
@@ -469,7 +482,7 @@ defmodule Enum do
   end
 
   @doc """
-  Filters the collection and maps its values in one pass.
+  Filters the `collection` and maps its values in one pass.
 
   ## Examples
 
@@ -489,8 +502,9 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the first item for which `fun` returns a truthy value. If no such
-  item is found, returns `ifnone`.
+  Returns the first item for which `fun` returns a truthy value.
+
+  If no such item is found, returns `ifnone`.
 
   ## Examples
 
@@ -522,6 +536,8 @@ defmodule Enum do
   end
 
   @doc """
+  Returns the result of `fun` for the first item that `fun` finds to be truthy.
+
   Similar to `find/3`, but returns the value of the function
   invocation instead of the element itself.
 
@@ -553,6 +569,8 @@ defmodule Enum do
   end
 
   @doc """
+  Returns the index of the first item that `fun` finds to be truthy.
+
   Similar to `find/3`, but returns the index (zero-based)
   of the element instead of the element itself.
 
@@ -582,7 +600,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the first item in the collection or `nil` otherwise.
+  Returns the first item in a `collection`, or `nil` otherwise.
 
   ## Examples
 
@@ -605,8 +623,8 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a new collection appending the result of invoking `fun`
-  on each corresponding item of `collection`.
+  Builds a collection by invoking `fun` on each corresponding item of a `collection`
+  and concatenating the results.
 
   Given function should return a list.
 
@@ -630,7 +648,8 @@ defmodule Enum do
   end
 
   @doc """
-  Joins the given `collection` according to `joiner`.
+  Joins the elements of a `collection` according to a `joiner`.
+
   `joiner` can be either a binary or a list and the
   result will be of the same type as `joiner`. If
   `joiner` is not passed at all, it defaults to an
@@ -659,8 +678,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a new collection, where each item is the result
-  of invoking `fun` on each corresponding item of `collection`.
+  Builds a collection by invoking `fun` on each corresponding item of a `collection`.
 
   For dicts, the function accepts a key-value tuple.
 
@@ -685,7 +703,8 @@ defmodule Enum do
   end
 
   @doc """
-  Maps and joins the given `collection` in one pass.
+  Maps and joins elements of a `collection` in one pass.
+
   `joiner` can be either a binary or a list and the
   result will be of the same type as `joiner`. If
   `joiner` is not passed at all, it defaults to an
@@ -714,9 +733,9 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given `fun` for each item in the `collection`
-  while also keeping an accumulator. Returns a tuple where
-  the first element is the mapped collection and the second
+  Maps over elements in a `collection` with `fun` while also keeping an accumulator.
+
+  Returns a tuple where the first element is the mapped collection and the second
   one is the final accumulator.
 
   For dicts, the first tuple element must be a `{ key, value }`
@@ -738,7 +757,9 @@ defmodule Enum do
   end
 
   @doc """
-  Partitions `collection` into two collections, where the first one contains elements
+  Splits a `collection` based on each element's truthiness when passed to `fun`.
+
+  Returns two collections, where the first one contains elements
   for which `fun` returns a truthy value, and the second one -- for which `fun`
   returns `false` or `nil`.
 
@@ -762,6 +783,8 @@ defmodule Enum do
   end
 
   @doc """
+  Condenses elements of a `collection` into a single value with `fun`.
+
   Invokes `fun` for each element in the collection passing that element and the
   accumulator `acc` as arguments. `fun`'s return value is stored in `acc`.
   Returns the accumulator.
@@ -778,6 +801,8 @@ defmodule Enum do
   end
 
   @doc """
+  Condenses elements of a `collection` into a single value, based on the first element.
+
   Invokes `fun` for each element in the collection passing that element and the
   accumulator `acc` as arguments. `fun`'s return value is stored in `acc`.
   The first element of the collection is used as the initial value of `acc`.
@@ -811,7 +836,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns elements of collection for which `fun` returns `false`.
+  Returns elements of a `collection` for which `fun` returns `false`.
 
   ## Examples
 
@@ -831,7 +856,7 @@ defmodule Enum do
   end
 
   @doc """
-  Reverses the collection.
+  Reverses a `collection`.
 
   ## Examples
 
@@ -851,7 +876,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a list of collection elements shuffled.
+  Randomly rearranges the elements in a `collection`.
 
   Notice you need to explicitly call `:random.seed/1` and
   set a seed value for the random algorithm. Otherwise, the
@@ -878,7 +903,9 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a sorted list of collection elements. Uses the merge sort algorithm.
+  Sorts a `collection`'s elements into a list.
+
+  Uses the merge sort algorithm.
 
   ## Examples
 
@@ -898,7 +925,9 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a sorted list of collection elements. Uses the merge sort algorithm.
+  Sorts a `collection`'s elements into a list with `fun`.
+
+  Uses the merge sort algorithm.
 
   ## Examples
 
@@ -917,10 +946,11 @@ defmodule Enum do
   end
 
   @doc """
-  Splits the enumerable into two collections, leaving `count`
-  elements in the first one. If `count` is a negative number,
-  it starts counting from the back to the beginning of the
-  collection.
+  Splits a `collection` in two such that the first one is `count` elements long.
+
+  Returns two collections, leaving `count` elements in the first one.
+  If `count` is a negative number,
+  it starts counting from the back to the beginning of the collection.
 
   Be aware that a negative `count` implies the collection
   will be iterated twice. Once to calculate the position and
@@ -964,12 +994,13 @@ defmodule Enum do
   end
 
   @doc """
-  Splits `collection` in two while `fun` returns `true`.
+  Splits a `collection` in two while `fun` returns `true`.
 
   ## Examples
 
       iex> Enum.split_while([1, 2, 3, 4], fn(x) -> x < 3 end)
       { [1, 2], [3, 4] }
+
   """
   @spec split_while(t, (element -> as_boolean(term))) :: {list, list}
   def split_while(collection, fun) when is_list(collection) do
@@ -988,8 +1019,9 @@ defmodule Enum do
   end
 
   @doc """
-  Takes the first `count` items from the collection. Expects an ordered
-  collection.
+  Takes the first `count` items from a `collection`.
+
+  Expects an ordered collection.
 
   ## Examples
 
@@ -1032,7 +1064,8 @@ defmodule Enum do
   end
 
   @doc """
-  Takes the items at the beginning of `collection` while `fun` returns `true`.
+  Takes the items at the beginning of a `collection` while `fun` returns `true`.
+
   Expects an ordered collection.
 
   ## Examples
@@ -1059,7 +1092,7 @@ defmodule Enum do
   end
 
   @doc """
-  Convert `collection` to a list.
+  Converts a `collection` to a list.
 
   ## Examples
 
@@ -1079,7 +1112,7 @@ defmodule Enum do
   end
 
   @doc """
-  Iterates the enumerable removing all duplicated items.
+  Iterates over a `collection`, removing all duplicated items.
 
   ## Examples
 
@@ -1112,10 +1145,10 @@ defmodule Enum do
   end
 
   @doc """
-  Zips corresponding elements from two collections into one list
-  of tuples. The number of elements in the resulting list is
-  dictated by the first enum. If the second list is shorter,
-  values are filled with `nil`.
+  Zips corresponding elements from two collections into one list of tuples.
+
+  The number of elements in the resulting list is dictated by the first enum.
+  If the second list is shorter, values are filled with `nil`.
 
   ## Examples
 
@@ -1146,6 +1179,7 @@ defmodule Enum do
 
   @doc """
   Returns the maximum value.
+
   Raises `EmptyError` if the collection is empty.
 
   ## Examples
@@ -1161,6 +1195,7 @@ defmodule Enum do
 
   @doc """
   Returns the maximum value as calculated by the given function.
+
   Raises `EmptyError` if the collection is empty.
 
   ## Examples
@@ -1200,6 +1235,7 @@ defmodule Enum do
 
   @doc """
   Returns the minimum value.
+
   Raises `EmptyError` if the collection is empty.
 
   ## Examples
@@ -1215,6 +1251,7 @@ defmodule Enum do
 
   @doc """
   Returns the minimum value as calculated by the given function.
+
   Raises `EmptyError` if the collection is empty.
 
   ## Examples
@@ -1253,8 +1290,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the collection with each element wrapped in a tuple
-  along side its index.
+  Returns a `collection` with each element wrapped in a tuple, along side its index.
 
   ## Examples
 
@@ -1270,12 +1306,14 @@ defmodule Enum do
   end
 
   @doc """
-  Shortcut to `chunks(coll, n, n)`.
+  Shorthand for `chunks(collection, n, n)`.
   """
   @spec chunks(t, non_neg_integer) :: [list]
-  def chunks(coll, n), do: chunks(coll, n, n, nil)
+  def chunks(collection, n), do: chunks(collection, n, n, nil)
 
   @doc """
+  Breaks down a `collection` into a list of subsets of the original.
+
   Returns a collection of lists containing `n` items each, where
   each new chunk starts `step` elements into the collection.
   `step` is optional and if not passed, defaults to `n`, i.e.
@@ -1299,9 +1337,9 @@ defmodule Enum do
   """
   @spec chunks(t, non_neg_integer, non_neg_integer) :: [list]
   @spec chunks(t, non_neg_integer, non_neg_integer, list) :: [list]
-  def chunks(coll, n, step, pad // nil) when n > 0 and step > 0 do
+  def chunks(collection, n, step, pad // nil) when n > 0 and step > 0 do
     { acc, buffer, i } =
-      Enumerable.reduce(coll, { [], [], 0 }, fn
+      Enumerable.reduce(collection, { [], [], 0 }, fn
         x, { acc, buffer, i } when i < n ->
           chunks_n(acc, [x|buffer], i + 1, n, step)
         x, { acc, buffer, i } when i < step ->
@@ -1317,7 +1355,7 @@ defmodule Enum do
   end
 
   @doc """
-  Splits `coll` on every element for which `fun` returns a new value.
+  Splits a `collection` on every element for which `fun` returns a new value.
 
   ## Examples
 
@@ -1326,9 +1364,9 @@ defmodule Enum do
 
   """
   @spec chunks_by(t, (element -> any)) :: [list]
-  def chunks_by(coll, fun) do
+  def chunks_by(collection, fun) do
     res =
-      Enumerable.reduce(coll, nil, fn
+      Enumerable.reduce(collection, nil, fn
         x, {acc, buffer, value} ->
           new_value = fun.(x)
           if new_value == value do
@@ -1347,23 +1385,31 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a subset list of the given collection. Dropping elements
-  until element position `start`, then taking `count` elements.
+  Returns a subset of a `collection` as a list.
+
+  It begins with the element at position `start`, then takes `count` elements.
+
   Expects an ordered collection.
+
+  ## Examples
+
+      iex> Enum.slice([1, 2, 2, 3, 4, 4, 6, 7, 7], 2, 4)
+      [2, 3, 4, 4]
+
   """
   @spec slice(t, integer, integer) :: list
 
-  def slice(coll, start, count) when start < 0 do
-    { list, new_start } = iterate_and_count_oob(coll, start)
+  def slice(collection, start, count) when start < 0 do
+    { list, new_start } = iterate_and_count_oob(collection, start)
     if new_start >= 0, do: slice(list, new_start, count)
   end
 
-  def slice(coll, start, count) when is_list(coll) and start >= 0 and count > 0 do
-    do_slice(coll, start, count)
+  def slice(collection, start, count) when is_list(collection) and start >= 0 and count > 0 do
+    do_slice(collection, start, count)
   end
 
-  def slice(coll, start, count) when start >= 0 and count > 0 do
-    { start, _, list } = Enumerable.reduce(coll, { start, count, [] }, fn
+  def slice(collection, start, count) when start >= 0 and count > 0 do
+    { start, _, list } = Enumerable.reduce(collection, { start, count, [] }, fn
       _entry, { start, count, _list } when start > 0 ->
         { start-1, count, [] }
       entry, { start, count, list } when count > 1 ->
@@ -1377,8 +1423,8 @@ defmodule Enum do
     { :enum_slice, list } -> :lists.reverse(list)
   end
 
-  def slice(coll, start, 0) do
-    Enumerable.reduce(coll, start, fn _, start ->
+  def slice(collection, start, 0) do
+    Enumerable.reduce(collection, start, fn _, start ->
       if start > 0, do: start-1, else: throw :enum_slice
     end)
     nil
