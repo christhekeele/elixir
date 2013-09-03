@@ -1,5 +1,4 @@
 defmodule Dict do
-<<<<<<< Updated upstream
   @moduledoc %S"""
   Provides an API for using key/value data structures.
 
