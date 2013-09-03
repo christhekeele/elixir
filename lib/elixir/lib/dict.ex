@@ -1,9 +1,11 @@
 defmodule Dict do
+<<<<<<< Updated upstream
   @moduledoc %S"""
-  This module specifies the Dict API expected to be
-  implemented by different dictionaries. It also provides
-  functions that redirect to the underlying Dict, allowing
-  a developer to work with different Dict implementations
+  Provides an API for using key/value data structures.
+
+  The Dict API is meant to be implemented by different dictionaries.
+  It also provides functions that redirect to the underlying Dict,
+  allowing a developer to work with different Dict implementations
   using one API.
 
   To create a new dict, use the `new` functions defined
@@ -81,7 +83,8 @@ defmodule Dict do
   end
 
   @doc """
-  Returns a list of all keys in `dict`.
+  Lists of the all keys in a `dict`.
+
   The keys are not guaranteed to be in any order.
 
   ## Examples
@@ -97,7 +100,8 @@ defmodule Dict do
   end
 
   @doc """
-  Returns a list of all values in `dict`
+  Lists all of the values in a `dict`
+
   The values are not guaranteed to be in any order.
 
   ## Examples
@@ -113,7 +117,7 @@ defmodule Dict do
   end
 
   @doc """
-  Returns the number of elements in `dict`.
+  Retrieves the number of elements in a `dict`.
 
   ## Examples
 
@@ -128,7 +132,7 @@ defmodule Dict do
   end
 
   @doc """
-  Returns whether the given `key` exists in the given `dict`.
+  Returns whether or not `key` exists in a `dict`.
 
   ## Examples
 
@@ -145,8 +149,9 @@ defmodule Dict do
   end
 
   @doc """
-  Returns the value associated with `key` in `dict`. If `dict` does not
-  contain `key`, returns `default` (or `nil` if not provided).
+  Retrieves the value associated with `key` in a `dict`.
+
+  If `dict` doesn't contain `key`, returns `default` (or `nil` if not provided).
 
   ## Examples
 
@@ -164,8 +169,10 @@ defmodule Dict do
   end
 
   @doc """
-  Returns `{ :ok, value }` associated with `key` in `dict`.
-  If `dict` does not contain `key`, returns `:error`.
+  Tries to get the value associated with `key` in a `dict`.
+
+  If `dict` contains the `key` returns `{ :ok, value }`.
+  Otherwise, returns `:error`.
 
   ## Examples
 
@@ -182,8 +189,9 @@ defmodule Dict do
   end
 
   @doc """
-  Returns the value associated with `key` in `dict`. If `dict` does not
-  contain `key`, it raises `KeyError`.
+  Retrieves the value associated with a `key` in a `dict`.
+
+  If `dict` does not contain `key`, it raises `KeyError`.
 
   ## Examples
 
@@ -200,7 +208,8 @@ defmodule Dict do
   end
 
   @doc """
-  Stores the given `value` under `key` in `dict`.
+  Stores a `value` under `key` in a `dict`.
+
   If `dict` already has `key`, the stored value is replaced by the new one.
 
   ## Examples
@@ -217,7 +226,7 @@ defmodule Dict do
   end
 
   @doc """
-  Puts the given `value` under `key` in `dict` unless `key` already exists.
+  Puts a `value` under `key` in a `dict` unless `key` already exists.
 
   ## Examples
 
@@ -233,7 +242,8 @@ defmodule Dict do
   end
 
   @doc """
-  Removes the entry stored under the given `key` from `dict`.
+  Removes the entry stored under at `key` from a `dict`.
+
   If `dict` does not contain `key`, returns the dictionary unchanged.
 
   ## Examples
@@ -254,9 +264,10 @@ defmodule Dict do
   end
 
   @doc """
-  Merges the given `enum` into `dict`. If one of the `enum` keys
-  already exists in `dict`, the `dict` value is replaced by the `enum`
-  value.
+  Merges an `enum` into a `dict`.
+
+  If one of the `enum` keys already exists in `dict`, the `dict` value
+  is replaced by the `enum` value.
 
   The `enum` must yield tuples with two elements on enumeration,
   where the first element represents the key and the second the value.
@@ -276,9 +287,10 @@ defmodule Dict do
   end
 
   @doc """
-  Merges the given `enum` into `dict`. If one of the `enum` entries
-  already exists in `dict`, the given function is invoked to resolve
-  the conflict.
+  Merges an `enum` into a `dict` according to a `fun`.
+
+  If one of the `enum` entries already exists in `dict`, the `fun` is invoked
+  to resolve the conflict.
 
   The `enum` must yield tuples with two elements on enumeration,
   where the first element represents the key and the second the value.
@@ -300,8 +312,10 @@ defmodule Dict do
   end
 
   @doc """
-  Returns the value associated with `key` in `dict` as
-  well as the `dict` without `key`.
+  Removes the value at `key` from a `dict` and returns both.
+
+  If `dict` doesn't contain `key`, the value will be `default`
+  (or `nil` if not provided).
 
   ## Examples
 
@@ -327,8 +341,9 @@ defmodule Dict do
   end
 
   @doc """
-  Update a value in `dict` by calling `fun` on the value to get a new
-  value. An exception is generated if `key` is not present in the dict.
+  Updates the value at 'key' in `dict` by calling a mutator `fun` on the value.
+
+  An exception is generated if `key` is not present in the dict.
 
   ## Examples
 
@@ -349,8 +364,9 @@ defmodule Dict do
   end
 
   @doc """
-  Update a value in `dict` by calling `fun` on the value to get a new value. If
-  `key` is not present in `dict` then `initial` will be stored as the first
+  Tries to update the value at 'key' in `dict` by calling a `fun` on the value.
+
+  If `key` is not present in `dict` then `initial` will be stored as the first
   value.
 
   ## Examples
@@ -367,6 +383,8 @@ defmodule Dict do
   end
 
   @doc """
+  Splits a `dict` according to a list of `keys`.
+
   Returns a tuple of two dicts, where the first dict contains only
   entries from `dict` with keys in `keys`, and the second dict
   contains only entries from `dict` with keys not in `keys`
@@ -397,7 +415,8 @@ defmodule Dict do
   end
 
   @doc """
-  Returns a new dict where the given `keys` are removed from `dict`.
+  Returns a copy of `dict` without the given `keys`.
+
   Any non-member keys are ignored.
 
   ## Examples
@@ -419,8 +438,8 @@ defmodule Dict do
   end
 
   @doc """
-  Returns a new dict where only the keys in `keys` from `dict` are
-  included. 
+  Returns a copy of `dict` with only the given `keys`.
+
   Any non-member keys are ignored.
 
   ## Examples
@@ -442,7 +461,7 @@ defmodule Dict do
   end
 
   @doc """
-  Returns an empty dict of the same type as `dict`.
+  Creates a new, empty dict of the same type as `dict`.
 
   ## Examples
 
@@ -458,8 +477,9 @@ defmodule Dict do
   end
 
   @doc """
-  Check if two dicts are equal. If the dicts are of different types, they are
-  first converted to lists.
+  Checks if two dicts are equal.
+
+  If the dicts are of different types, they are first converted to lists.
 
   ## Examples
 
@@ -493,6 +513,7 @@ defmodule Dict do
 
   @doc """
   Returns a list of key-value pairs stored in `dict`.
+
   No particular order is enforced.
   """
   @spec to_list(t) :: list
