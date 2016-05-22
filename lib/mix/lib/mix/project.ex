@@ -490,6 +490,7 @@ defmodule Mix.Project do
      erlc_include_path: "include",
      erlc_options: [:debug_info],
      lockfile: "mix.lock",
+     localfile: "mix.local",
      preferred_cli_env: [],
      start_permanent: false]
   end
