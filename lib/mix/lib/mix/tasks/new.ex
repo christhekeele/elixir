@@ -239,6 +239,9 @@ defmodule Mix.Tasks.New do
 
   # Also ignore archive artifacts (built via "mix archive.build").
   *.ez
+
+  # And local git repo dependency configuration (via "mix deps.local")
+  mix.local
   """
 
   embed_template :mixfile, """
