@@ -30,10 +30,10 @@ defmodule Mix.Tasks.Deps.Update do
 
     cond do
       opts[:all] ->
-        Mix.Dep.Fetcher.all(Mix.Dep.Lock.read, %{}, fetch_opts)
+        Mix.Dep.Fetcher.all(Mix.Dep.Lock.read, %{}, Mix.Dep.Local.read, fetch_opts)
       rest != [] ->
         {old, new} = Map.split(Mix.Dep.Lock.read, to_app_names(rest))
-        Mix.Dep.Fetcher.by_name(rest, old, new, fetch_opts)
+        Mix.Dep.Fetcher.by_name(rest, old, new, Mix.Dep.Local.read, fetch_opts)
       true ->
         Mix.raise "\"mix deps.update\" expects dependencies as arguments or " <>
                                   "the --all option to update all dependencies"

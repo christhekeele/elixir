@@ -89,7 +89,7 @@ defmodule Mix.Dep do
   provided in the project are in the wrong format.
   """
   def loaded(opts) do
-    Mix.Dep.Converger.converge(nil, nil, opts, &{&1, &2, &3}) |> elem(0)
+    Mix.Dep.Converger.converge(nil, nil, nil, opts, fn dep, acc, lock, _local -> {dep, acc, lock} end) |> elem(0)
   end
 
   @doc """

@@ -12,8 +12,8 @@ defmodule Mix.Dep.Fetcher do
   @doc """
   Fetches all dependencies.
   """
-  def all(old_lock, new_lock, opts) do
-    result = Mix.Dep.Converger.converge([], new_lock, opts, &do_fetch/3)
+  def all(old_lock, new_lock, local, opts) do
+    result = Mix.Dep.Converger.converge([], new_lock, local, opts, &do_fetch/4)
     {apps, _deps} = do_finalize(result, old_lock, opts)
     apps
   end
@@ -21,9 +21,9 @@ defmodule Mix.Dep.Fetcher do
   @doc """
   Fetches the dependencies with the given names and their children recursively.
   """
-  def by_name(names, old_lock, new_lock, opts) do
+  def by_name(names, old_lock, new_lock, local, opts) do
     fetcher = fetch_by_name(names, new_lock)
-    result = Mix.Dep.Converger.converge([], new_lock, opts, fetcher)
+    result = Mix.Dep.Converger.converge([], new_lock, local, opts, fetcher)
     {apps, deps} = do_finalize(result, old_lock, opts)
 
     # Check if all given dependencies are loaded or fail
@@ -34,18 +34,19 @@ defmodule Mix.Dep.Fetcher do
   defp fetch_by_name(given, lock) do
     names = to_app_names(given)
 
-    fn(%Mix.Dep{app: app} = dep, acc, new_lock) ->
+    fn(%Mix.Dep{app: app} = dep, acc, new_lock, local) ->
       # Only fetch if dependency is in given names or if lock has
       # been changed for dependency by remote converger
       if app in names or lock[app] != new_lock[app] do
-        do_fetch(dep, acc, new_lock)
+        do_fetch(dep, acc, new_lock, local)
       else
         {dep, acc, new_lock}
       end
     end
   end
 
-  defp do_fetch(dep, acc, lock) do
+# TODO: Use local repo configuration
+  defp do_fetch(dep, acc, lock, local) do
     %Mix.Dep{app: app, scm: scm, opts: opts} = dep = check_lock(dep)
 
     cond do

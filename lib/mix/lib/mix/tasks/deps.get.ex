@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Deps.Get do
     # Fetch all deps by default unless --only is given
     fetch_opts = if only = opts[:only], do: [env: :"#{only}"], else: []
 
-    apps = Mix.Dep.Fetcher.all(%{}, Mix.Dep.Lock.read, fetch_opts)
+    apps = Mix.Dep.Fetcher.all(%{}, Mix.Dep.Lock.read, Mix.Dep.Local.read, fetch_opts)
 
     if apps == [] do
       Mix.shell.info "All dependencies up to date"
