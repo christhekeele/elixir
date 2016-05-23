@@ -45,7 +45,6 @@ defmodule Mix.Dep.Fetcher do
     end
   end
 
-# TODO: Use local repo configuration
   defp do_fetch(dep, acc, lock, local) do
     %Mix.Dep{app: app, scm: scm, opts: opts} = dep = dep
       |> check_lock

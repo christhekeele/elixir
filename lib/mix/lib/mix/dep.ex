@@ -324,7 +324,7 @@ defmodule Mix.Dep do
     end
   end
 
-  # Must be using a branch, tag, or ref if found in local donfig!!
+  # Must be using a branch, tag, or ref if found in local config
   defp do_check_local(dep = %Mix.Dep{scm: Mix.SCM.Git, app: app, opts: opts}, local) do
     if Enum.any? [:branch, :ref, :tag], &(&1 in Keyword.keys(opts)) do
       apply_local_config(dep, local)
@@ -333,7 +333,7 @@ defmodule Mix.Dep do
     end
   end
 
-  # Must be using the git SCM if found in local config!
+  # Must be using the git SCM if found in local config
   defp do_check_local(%Mix.Dep{app: app}, _local) do
     Mix.raise "Dependency #{app} found in mix.local config but is not using git in mix.exs."
   end
