@@ -304,6 +304,52 @@ defmodule Mix.Dep do
   end
 
   @doc """
+  Checks the local git repo config for this dependency and ensures valid state.
+
+  It converts the dependency to a path one if all criteria is met and the dep
+  is activated in the config, otherwise it leaves it as a git one and continues.
+
+  This will raise if:
+
+  - The dep is found in the local config but not using git
+  - The dep is found in the local config but not configured to use a git ref
+  - The dep is actived locally but is not using git at that path
+  - The dep is actived locally but is not using the correct ref at that path
+  """
+  def check_local(dep = %Mix.Dep{app: app}, local) do
+    if app in Map.keys local do
+      do_check_local dep, Map.get(local, app)
+    else
+      dep
+    end
+  end
+
+  # Must be using a branch, tag, or ref if found in local donfig!!
+  defp do_check_local(dep = %Mix.Dep{scm: Mix.SCM.Git, app: app, opts: opts}, local) do
+    if Enum.any? [:branch, :ref, :tag], &(&1 in Keyword.keys(opts)) do
+      apply_local_config(dep, local)
+    else
+      Mix.raise "Dependency #{app} found in mix.local config but has not specified a branch, ref, or tag in mix.exs."
+    end
+  end
+
+  # Must be using the git SCM if found in local config!
+  defp do_check_local(%Mix.Dep{app: app}, _local) do
+    Mix.raise "Dependency #{app} found in mix.local config but is not using git in mix.exs."
+  end
+
+  # Switch out SCM to use path
+  defp apply_local_config(dep = %Mix.Dep{app: app}, {:enabled, path}) do
+    # TODO: check if path is in valid git state, then switch out the SCM to use it.
+    dep
+  end
+
+  # Keep on with git scm
+  defp apply_local_config(dep, _local) do
+    dep
+  end
+
+  @doc """
   Returns `true` if the dependency is ok.
   """
   def ok?(%Mix.Dep{status: {:ok, _}}), do: true

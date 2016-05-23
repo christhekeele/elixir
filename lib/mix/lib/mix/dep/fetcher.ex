@@ -7,7 +7,7 @@
 defmodule Mix.Dep.Fetcher do
   @moduledoc false
 
-  import Mix.Dep, only: [format_dep: 1, check_lock: 1, available?: 1]
+  import Mix.Dep, only: [format_dep: 1, check_lock: 1, check_local: 2, available?: 1]
 
   @doc """
   Fetches all dependencies.
@@ -47,7 +47,9 @@ defmodule Mix.Dep.Fetcher do
 
 # TODO: Use local repo configuration
   defp do_fetch(dep, acc, lock, local) do
-    %Mix.Dep{app: app, scm: scm, opts: opts} = dep = check_lock(dep)
+    %Mix.Dep{app: app, scm: scm, opts: opts} = dep = dep
+      |> check_lock
+      |> check_local(local)
 
     cond do
       # Dependencies that cannot be fetched are always compiled afterwards
