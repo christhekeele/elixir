@@ -339,9 +339,9 @@ defmodule Mix.Dep do
   end
 
   # Switch out SCM to use path
-  defp apply_local_config(dep = %Mix.Dep{app: app}, {:enabled, path}) do
-    # TODO: check if path is in valid git state, then switch out the SCM to use it.
-    dep
+  defp apply_local_config(dep = %Mix.Dep{opts: opts}, {:enabled, path}) do
+    Mix.shell.info "* Using local source #{path} for #{format_dep(dep)}"
+    %{ dep | scm: Mix.SCM.Path, opts: Keyword.put(opts, :path, path) }
   end
 
   # Keep on with git scm

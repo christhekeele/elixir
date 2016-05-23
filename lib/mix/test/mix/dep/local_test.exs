@@ -32,7 +32,7 @@ defmodule Mix.Dep.LocalTest do
     end
   end
 
-  test "deps not in local config are treated normally" do
+  test "deps not in local config are unchanged" do
     local = %{}
     dep = %Mix.Dep{app: :name}
     assert dep == Mix.Dep.check_local(dep, local)
@@ -57,4 +57,17 @@ defmodule Mix.Dep.LocalTest do
       Mix.Dep.check_local(non_git_dep, local)
     end
   end
+
+  test "enabled deps in local config become path deps" do
+    local = %{
+      foo: {:enabled, "bar"},
+    }
+
+    full_git_dep = %Mix.Dep{app: :foo, scm: Mix.SCM.Git, opts: [branch: "master"]}
+    new_dep = Mix.Dep.check_local(full_git_dep, local)
+
+    assert %Mix.Dep{app: :foo, scm: Mix.SCM.Path} = new_dep
+    assert {:path, "bar"} in new_dep.opts
+  end
+
 end
