@@ -43,12 +43,12 @@ defmodule Mix.Dep.Converger do
 
   See `Mix.Dep.Loader.children/1` for options.
   """
-  def converge(acc, lock, opts, callback) do
-    {deps, acc, lock} = all(acc, lock, opts, callback)
+  def converge(acc, lock, local, opts, callback) do
+    {deps, acc, lock} = all(acc, lock, local, opts, callback)
     {topsort(deps), acc, lock}
   end
 
-  defp all(acc, lock, opts, callback) do
+  defp all(acc, lock, local, opts, callback) do
     main = Mix.Dep.Loader.children()
     main = Enum.map(main, &(%{&1 | top_level: true}))
     apps = Enum.map(main, &(&1.app))
@@ -64,7 +64,7 @@ defmodule Mix.Dep.Converger do
     # lazily loaded, we need to check for it on every
     # iteration.
     {deps, rest, lock} =
-      all(main, apps, callback, acc, lock, env, fn dep ->
+      all(main, apps, callback, acc, lock, local, env, fn dep ->
         if (remote = Mix.RemoteConverger.get) && remote.remote?(dep) do
           {:loaded, dep}
         else
@@ -93,7 +93,7 @@ defmodule Mix.Dep.Converger do
       # which is potentially stale. So remote.deps/2 needs to always
       # check if the data it finds in the lock is actually valid.
       {deps, rest, lock} =
-        all(main, apps, callback, rest, lock, env, fn dep ->
+        all(main, apps, callback, rest, lock, local, env, fn dep ->
           if cached = deps[dep.app] do
             {:loaded, cached}
           else
@@ -107,8 +107,8 @@ defmodule Mix.Dep.Converger do
     end
   end
 
-  defp all(main, apps, callback, rest, lock, env, cache) do
-    {deps, rest, lock} = all(main, [], [], apps, callback, rest, lock, env, cache)
+  defp all(main, apps, callback, rest, lock, local, env, cache) do
+    {deps, rest, lock} = all(main, [], [], apps, callback, rest, lock, local, env, cache)
     # When traversing dependencies, we keep skipped ones to
     # find conflicts. We remove them now after traversal.
     {deps, _} = Mix.Dep.Loader.partition_by_env(deps, env)
@@ -154,21 +154,21 @@ defmodule Mix.Dep.Converger do
   # Now, since "d" was specified in a parent project, no
   # exception is going to be raised since d is considered
   # to be the authoritative source.
-  defp all([dep | t], acc, upper_breadths, current_breadths, callback, rest, lock, env, cache) do
+  defp all([dep | t], acc, upper_breadths, current_breadths, callback, rest, lock, local, env, cache) do
     cond do
       new_acc = diverged_deps(acc, upper_breadths, dep) ->
-        all(t, new_acc, upper_breadths, current_breadths, callback, rest, lock, env, cache)
+        all(t, new_acc, upper_breadths, current_breadths, callback, rest, lock, local, env, cache)
       Mix.Dep.Loader.skip?(dep, env) ->
         # We still keep skipped dependencies around to detect conflicts.
         # They must be rejected after every all iteration.
-        all(t, [dep | acc], upper_breadths, current_breadths, callback, rest, lock, env, cache)
+        all(t, [dep | acc], upper_breadths, current_breadths, callback, rest, lock, local, env, cache)
       true ->
         {dep, rest, lock} =
           case cache.(dep) do
             {:loaded, cached_dep} ->
               {cached_dep, rest, lock}
             {:unloaded, dep, children} ->
-              {dep, rest, lock} = callback.(put_lock(dep, lock), rest, lock)
+              {dep, rest, lock} = callback.(put_lock(dep, lock), rest, lock, local)
 
               # After we invoke the callback (which may actually check out the
               # dependency), we load the dependency including its latest info
@@ -177,15 +177,15 @@ defmodule Mix.Dep.Converger do
           end
 
         {acc, rest, lock} =
-          all(t, [dep | acc], upper_breadths, current_breadths, callback, rest, lock, env, cache)
+          all(t, [dep | acc], upper_breadths, current_breadths, callback, rest, lock, local, env, cache)
 
         deps = reject_non_fullfilled_optional(dep.deps, Enum.map(acc, & &1.app))
         new_breadths = Enum.map(deps, &(&1.app)) ++ current_breadths
-        all(deps, acc, current_breadths, new_breadths, callback, rest, lock, env, cache)
+        all(deps, acc, current_breadths, new_breadths, callback, rest, lock, local, env, cache)
     end
   end
 
-  defp all([], acc, _upper, _current, _callback, rest, lock, _env, _cache) do
+  defp all([], acc, _upper, _current, _callback, rest, lock, _local, _env, _cache) do
     {Enum.reverse(acc), rest, lock}
   end
 

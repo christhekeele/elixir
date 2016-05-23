@@ -89,7 +89,7 @@ defmodule Mix.Dep do
   provided in the project are in the wrong format.
   """
   def loaded(opts) do
-    Mix.Dep.Converger.converge(nil, nil, opts, &{&1, &2, &3}) |> elem(0)
+    Mix.Dep.Converger.converge(nil, nil, nil, opts, fn dep, acc, lock, _local -> {dep, acc, lock} end) |> elem(0)
   end
 
   @doc """
@@ -301,6 +301,33 @@ defmodule Mix.Dep do
       _ ->
         dep
     end
+  end
+
+  @doc """
+  Checks the local git repo config for this dependency and replaces it with a
+  local path SCM instead. Ignores non-git dependencies.
+  """
+  def check_local(dep = %Mix.Dep{scm: Mix.SCM.Git, app: app}, local) do
+    if app in Map.keys local do
+      make_local dep, Map.get(local, app)
+    else
+      dep
+    end
+  end
+
+  def check_local(dep, _) do
+    dep
+  end
+
+  # Switch out SCM to use path
+  defp make_local(dep = %Mix.Dep{opts: opts}, {:enabled, path}) do
+    Mix.shell.info [:green, "* using local source ", :reset, "#{path} for #{format_dep(dep)}"]
+    %{ dep | scm: Mix.SCM.Path, opts: Keyword.put(opts, :path, path) }
+  end
+
+  # Otherwise, carry on
+  defp make_local(dep, _) do
+    dep
   end
 
   @doc """

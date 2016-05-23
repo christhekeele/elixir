@@ -321,3 +321,48 @@ defmodule Mix.Tasks.Acronym.HTTP do
   use Mix.Task
   def run(_), do: "An HTTP Task"
 end |> write_beam.()
+
+
+
+defmodule DepsApp do
+  def project do
+    [deps: [
+       {:ok,         "0.1.0", path: "deps/ok"},
+       {:invalidvsn, "0.2.0", path: "deps/invalidvsn"},
+       {:invalidapp, "0.1.0", path: "deps/invalidapp"},
+       {:noappfile,  "0.1.0", path: "deps/noappfile"},
+       {:uncloned,            git: "https://github.com/elixir-lang/uncloned.git"},
+       {:optional,            git: "https://github.com/elixir-lang/optional.git", optional: true}
+     ]]
+  end
+end
+
+defmodule ProcessDepsApp do
+  def project do
+    [app: :process_deps_app, deps: Process.get(:mix_deps)]
+  end
+end
+
+defmodule DepsHelpers do
+  defmacro __using__(_) do
+    quote do
+
+      defp with_deps(deps, fun) do
+        Process.put(:mix_deps, deps)
+        Mix.Project.push ProcessDepsApp
+        fun.()
+      after
+        Mix.Project.pop
+      end
+
+      defp assert_wrong_dependency(deps) do
+        with_deps deps, fn ->
+          assert_raise Mix.Error, ~r"Dependency specified in the wrong format", fn ->
+            Mix.Dep.loaded([])
+          end
+        end
+      end
+
+    end
+  end
+end
