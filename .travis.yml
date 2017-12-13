@@ -1,0 +1,50 @@
+language: elixir
+
+script: travis_wait 40 mix dialyzer
+
+otp_release:
+  - 20.1
+  - 20.0
+  - 19.2
+  # - 19.1
+  - 19.0
+  - 18.3
+  # - 18.2
+  # - 18.1
+  - 18.0
+elixir:
+  # - 1.6.0
+  - 1.5.2
+  # - 1.5.1
+  - 1.5.0
+  - 1.4.5
+  # - 1.4.4
+  # - 1.4.3
+  # - 1.4.2
+  # - 1.4.1
+  - 1.4.0
+  - 1.3.4
+  # - 1.3.3
+  # - 1.3.2
+  # - 1.3.1
+  - 1.3.0
+  
+matrix:
+  exclude:
+    - otp_release: 20.1
+      elixir: 1.4.0
+    - otp_release: 20.0
+      elixir: 1.4.0
+    - otp_release: 20.1
+      elixir: 1.3.4
+    - otp_release: 20.0
+      elixir: 1.3.4
+    - otp_release: 20.1
+      elixir: 1.3.0
+    - otp_release: 20.0
+      elixir: 1.3.0
+
+install:
+  - mix local.rebar --force
+  - mix local.hex --force
+  - mix deps.get

@@ -1,0 +1,13 @@
+Compiling 1 file (.ex)
+Generated defprotocol_dialyzer_warn app
+Checking Erlang/OTP PLT: /Users/keele/.cache/dialyzer/plts/erlang-20-erts-9.1.3.plt
+Checking Elixir PLT: /Users/keele/.cache/dialyzer/plts/elixir-1.5.2.plt
+Checking dependencies PLT: /Users/keele/Projects/forks/elixir/lang/_build/dev/deps-HnaS3RCC11PYE1Mh667l3w.plt
+Running analysis...
+
+Errors:
+  deps/phoenix/lib/phoenix/param.ex:1: Guard test 'or'('false','false') can never succeed
+  deps/plug/lib/plug/exceptions.ex:4: Guard test 'or'('false','false') can never succeed
+  deps/poison/lib/poison/decoder.ex:82: Guard test 'or'('false','false') can never succeed
+
+FAILURE: 3 failures.
