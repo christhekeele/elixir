@@ -138,7 +138,8 @@ defmodule DynamicSupervisor do
   You may also provide a list of child specifications that the supervisor will
   always start on launch; this feature is only supported on Erlang/OTP 21+.
   """
-  @callback init(args :: term) :: {:ok, sup_flags()} | {:ok, {sup_flags(), [:supervisor.child_spec()]}} | :ignore
+  @callback init(args :: term) ::
+              {:ok, sup_flags()} | {:ok, {sup_flags(), [:supervisor.child_spec()]}} | :ignore
 
   @typedoc "The supervisor flags returned on init"
   @type sup_flags() :: %{
@@ -255,7 +256,7 @@ defmodule DynamicSupervisor do
   @since "1.6.0"
   @spec start_link(options) :: Supervisor.on_start()
   def start_link(options) when is_list(options) do
-    keys = [:extra_arguments, :max_children, :max_seconds, :max_restarts, :strategy]
+    keys = [:extra_arguments, :max_children, :max_seconds, :max_restarts, :strategy, :initial_children]
     {sup_opts, start_opts} = Keyword.split(options, keys)
     start_link(Supervisor.Default, init(sup_opts), start_opts)
   end
@@ -510,7 +511,8 @@ defmodule DynamicSupervisor do
 
   """
   @since "1.6.0"
-  @spec init([init_option]) :: {:ok, sup_flags()} | {:ok, {sup_flags(), [:supervisor.child_spec()]}}
+  @spec init([init_option]) ::
+          {:ok, sup_flags()} | {:ok, {sup_flags(), [:supervisor.child_spec()]}}
   def init(options) when is_list(options) do
     unless strategy = options[:strategy] do
       raise ArgumentError, "expected :strategy option to be given"
@@ -540,16 +542,16 @@ defmodule DynamicSupervisor do
     Process.put(:"$initial_call", {:supervisor, mod, 1})
     Process.flag(:trap_exit, true)
 
-    case mod.init(args) do
-      {:ok, flags} when is_map(flags) ->
-        case init(mod, name, args, flags) do
-          {:ok, state} -> {:ok, state}
-          {:ok, state, {:continue, continue}} -> {:ok, state, {:continue, continue}}
-          {:error, reason} -> {:stop, {:supervisor_data, reason}}
-        end
+    name =
+      cond do
+        is_nil(name) -> {self(), mod}
+        is_atom(name) -> {:local, name}
+        is_tuple(name) -> name
+      end
 
-      {:ok, {flags, initial_children}} when is_map(flags) and is_list(initial_children) ->
-        case init(mod, name, args, flags, initial_children) do
+    case mod.init(args) do
+      {:ok, result} when is_map(result) or is_tuple(result) and tuple_size(result) == 2 and is_map(elem(result, 0))->
+        case init(%DynamicSupervisor{mod: mod, args: args, name: name}, result) do
           {:ok, state} -> {:ok, state}
           {:ok, state, {:continue, continue}} -> {:ok, state, {:continue, continue}}
           {:error, reason} -> {:stop, {:supervisor_data, reason}}
@@ -563,16 +565,9 @@ defmodule DynamicSupervisor do
     end
   end
 
-  defp init(mod, name, args, flags, initial_children \\ []) do
-    name =
-      cond do
-        is_nil(name) -> {self(), mod}
-        is_atom(name) -> {:local, name}
-        is_tuple(name) -> name
-      end
-
-    state = %DynamicSupervisor{mod: mod, args: args, name: name}
-
+  defp init(state, flags) when not is_tuple(flags), do: init(state, {flags, []})
+  defp init(state, {flags, initial_children}) do
+    IO.inspect [state: state, flags: flags, initial_children: initial_children]
     with {:ok, state} <- validate_state(state, flags),
          {:ok, initial_children} <- validate_children(state, initial_children),
          :ok <- validate_capacity(state, initial_children) do
@@ -623,11 +618,15 @@ defmodule DynamicSupervisor do
   defp validate_extra_arguments(list) when is_list(list), do: :ok
   defp validate_extra_arguments(extra), do: {:error, {:invalid_extra_arguments, extra}}
 
-  defp validate_capacity(state, child) when not is_list(child), do: validate_capacity(state, [child])
+  defp validate_capacity(state, child) when not is_list(child),
+    do: validate_capacity(state, [child])
+
   defp validate_capacity(_state, []), do: :ok
   defp validate_capacity(%{max_children: :infinity}, _new_children), do: :ok
+
   defp validate_capacity(%{max_children: max_children, children: current_children}, new_children) do
     total = map_size(current_children) + length(new_children)
+
     if total <= max_children do
       :ok
     else
@@ -643,6 +642,7 @@ defmodule DynamicSupervisor do
   end
 
   defp do_validate_children(_state, [], acc), do: acc
+
   defp do_validate_children(state, [child | children], acc) do
     case validate_child(child) do
       {:ok, child} -> do_validate_children(state, children, [add_extra_args(state, child) | acc])
@@ -657,6 +657,7 @@ defmodule DynamicSupervisor do
   # This feature is only supported on Erlang/OTP 21+.
   @impl true
   def handle_continue({:initial, []}, state), do: {:noreply, state}
+
   def handle_continue({:initial, [child | children]}, state) do
     case handle_initial_child(child, state) do
       {:ok, state} -> {:noreply, state, {:continue, {:initial, children}}}
@@ -822,16 +823,16 @@ defmodule DynamicSupervisor do
   end
 
   @impl true
-  def code_change(_, %{mod: mod, args: args, name: name} = state, _) do
+  def code_change(_, %{mod: mod, args: args} = state, _) do
     case mod.init(args) do
       {:ok, flags} when is_map(flags) ->
-        case init(mod, name, args, flags) do
+        case init(state, flags) do
           {:ok, state} -> {:ok, state}
           {:error, reason} -> {:error, {:supervisor_data, reason}}
         end
 
-      {:ok, {flags, initial_children}} when is_map(flags) and is_list(initial_children) ->
-        case init(mod, name, args, flags) do
+      {:ok, {flags, _initial_children}} when is_map(flags) ->
+        case init(state, flags) do
           {:ok, state} -> {:ok, state}
           {:error, reason} -> {:error, {:supervisor_data, reason}}
         end
