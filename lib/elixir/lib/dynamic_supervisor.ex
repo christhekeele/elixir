@@ -134,8 +134,11 @@ defmodule DynamicSupervisor do
 
   Developers typically invoke `DynamicSupervisor.init/1` at the end of
   their init callback to return the proper supervision flags.
+
+  You may also provide a list of child specifications that the supervisor will
+  always start on launch; this feature is only supported on Erlang/OTP 21+.
   """
-  @callback init(args :: term) :: {:ok, sup_flags()} | :ignore
+  @callback init(args :: term) :: {:ok, sup_flags()} | {:ok, {sup_flags(), [:supervisor.child_spec()]}} | :ignore
 
   @typedoc "The supervisor flags returned on init"
   @type sup_flags() :: %{
@@ -500,9 +503,14 @@ defmodule DynamicSupervisor do
       specified in the child spec given to `start_child/2`. Defaults to
       an empty list.
 
+    * `:initial_children` - child specifications to launch immediately
+      after the supervisor starts. They will be augmented with any
+      `:extra_arguments` provided. They cannot exceed `:max_capacity`.
+      This feature is only supported on Erlang/OTP 21+.
+
   """
   @since "1.6.0"
-  @spec init([init_option]) :: {:ok, sup_flags()}
+  @spec init([init_option]) :: {:ok, sup_flags()} | {:ok, {sup_flags(), [:supervisor.child_spec()]}}
   def init(options) when is_list(options) do
     unless strategy = options[:strategy] do
       raise ArgumentError, "expected :strategy option to be given"
@@ -512,6 +520,7 @@ defmodule DynamicSupervisor do
     period = Keyword.get(options, :max_seconds, 5)
     max_children = Keyword.get(options, :max_children, :infinity)
     extra_arguments = Keyword.get(options, :extra_arguments, [])
+    initial_children = Keyword.get(options, :initial_children, [])
 
     flags = %{
       strategy: strategy,
@@ -521,7 +530,7 @@ defmodule DynamicSupervisor do
       extra_arguments: extra_arguments
     }
 
-    {:ok, flags}
+    {:ok, {flags, initial_children}}
   end
 
   ## Callbacks
@@ -533,17 +542,16 @@ defmodule DynamicSupervisor do
 
     case mod.init(args) do
       {:ok, flags} when is_map(flags) ->
-        name =
-          cond do
-            is_nil(name) -> {self(), mod}
-            is_atom(name) -> {:local, name}
-            is_tuple(name) -> name
-          end
-
-        state = %DynamicSupervisor{mod: mod, args: args, name: name}
-
-        case init(state, flags) do
+        case init(mod, name, args, flags) do
           {:ok, state} -> {:ok, state}
+          {:ok, state, {:continue, continue}} -> {:ok, state, {:continue, continue}}
+          {:error, reason} -> {:stop, {:supervisor_data, reason}}
+        end
+
+      {:ok, {flags, initial_children}} when is_map(flags) and is_list(initial_children) ->
+        case init(mod, name, args, flags, initial_children) do
+          {:ok, state} -> {:ok, state}
+          {:ok, state, {:continue, continue}} -> {:ok, state, {:continue, continue}}
           {:error, reason} -> {:stop, {:supervisor_data, reason}}
         end
 
@@ -555,7 +563,27 @@ defmodule DynamicSupervisor do
     end
   end
 
-  defp init(state, flags) do
+  defp init(mod, name, args, flags, initial_children \\ []) do
+    name =
+      cond do
+        is_nil(name) -> {self(), mod}
+        is_atom(name) -> {:local, name}
+        is_tuple(name) -> name
+      end
+
+    state = %DynamicSupervisor{mod: mod, args: args, name: name}
+
+    with {:ok, state} <- validate_state(state, flags),
+         {:ok, initial_children} <- validate_children(state, initial_children),
+         :ok <- validate_capacity(state, initial_children) do
+      init_with_children(state, initial_children)
+    end
+  end
+
+  defp init_with_children(state, []), do: {:ok, state}
+  defp init_with_children(state, children), do: {:ok, state, {:continue, {:initial, children}}}
+
+  defp validate_state(state, flags) do
     extra_arguments = Map.get(flags, :extra_arguments, [])
     max_children = Map.get(flags, :max_children, :infinity)
     max_restarts = Map.get(flags, :intensity, 1)
@@ -594,6 +622,60 @@ defmodule DynamicSupervisor do
 
   defp validate_extra_arguments(list) when is_list(list), do: :ok
   defp validate_extra_arguments(extra), do: {:error, {:invalid_extra_arguments, extra}}
+
+  defp validate_capacity(state, child) when not is_list(child), do: validate_capacity(state, [child])
+  defp validate_capacity(_state, []), do: :ok
+  defp validate_capacity(%{max_children: :infinity}, _new_children), do: :ok
+  defp validate_capacity(%{max_children: max_children, children: current_children}, new_children) do
+    total = map_size(current_children) + length(new_children)
+    if total <= max_children do
+      :ok
+    else
+      {:error, {:over_capacity, total}}
+    end
+  end
+
+  defp validate_children(state, children) do
+    case do_validate_children(state, children, []) do
+      children when is_list(children) -> {:ok, children}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  defp do_validate_children(_state, [], acc), do: acc
+  defp do_validate_children(state, [child | children], acc) do
+    case validate_child(child) do
+      {:ok, child} -> do_validate_children(state, children, [add_extra_args(state, child) | acc])
+      error -> {:error, error}
+    end
+  end
+
+  defp add_extra_args(%{extra_arguments: extra}, {{m, f, args}, restart, shutdown, type, modules}) do
+    {{m, f, extra ++ args}, restart, shutdown, type, modules}
+  end
+
+  # This feature is only supported on Erlang/OTP 21+.
+  @impl true
+  def handle_continue({:initial, []}, state), do: {:noreply, state}
+  def handle_continue({:initial, [child | children]}, state) do
+    case handle_initial_child(child, state) do
+      {:ok, state} -> {:noreply, state, {:continue, {:initial, children}}}
+      {:error, reason} -> {:stop, reason, state}
+    end
+  end
+
+  defp handle_initial_child({{m, f, args} = mfa, restart, shutdown, type, modules}, state) do
+    case start_child(m, f, args) do
+      {:ok, pid, _} ->
+        {:ok, save_child(pid, mfa, restart, shutdown, type, modules, state)}
+
+      {:ok, pid} ->
+        {:ok, save_child(pid, mfa, restart, shutdown, type, modules, state)}
+
+      other ->
+        {:error, other}
+    end
+  end
 
   @impl true
   def handle_call(:which_children, _from, state) do
@@ -656,19 +738,14 @@ defmodule DynamicSupervisor do
   end
 
   def handle_call({:start_child, child}, _from, state) do
-    %{children: children, max_children: max_children} = state
-
-    if map_size(children) < max_children do
-      handle_start_child(child, state)
-    else
-      {:reply, {:error, :max_children}, state}
+    case validate_capacity(state, child) do
+      :ok -> handle_start_child(add_extra_args(state, child), state)
+      {:error, {:over_capacity, _total}} -> {:reply, {:error, :max_children}, state}
     end
   end
 
   defp handle_start_child({{m, f, args} = mfa, restart, shutdown, type, modules}, state) do
-    %{extra_arguments: extra} = state
-
-    case reply = start_child(m, f, extra ++ args) do
+    case reply = start_child(m, f, args) do
       {:ok, pid, _} ->
         {:reply, reply, save_child(pid, mfa, restart, shutdown, type, modules, state)}
 
@@ -745,10 +822,16 @@ defmodule DynamicSupervisor do
   end
 
   @impl true
-  def code_change(_, %{mod: mod, args: args} = state, _) do
+  def code_change(_, %{mod: mod, args: args, name: name} = state, _) do
     case mod.init(args) do
       {:ok, flags} when is_map(flags) ->
-        case init(state, flags) do
+        case init(mod, name, args, flags) do
+          {:ok, state} -> {:ok, state}
+          {:error, reason} -> {:error, {:supervisor_data, reason}}
+        end
+
+      {:ok, {flags, initial_children}} when is_map(flags) and is_list(initial_children) ->
+        case init(mod, name, args, flags) do
           {:ok, state} -> {:ok, state}
           {:error, reason} -> {:error, {:supervisor_data, reason}}
         end
@@ -960,10 +1043,9 @@ defmodule DynamicSupervisor do
   end
 
   defp restart_child(:one_for_one, current_pid, child, state) do
-    {{m, f, args} = mfa, restart, shutdown, type, modules} = child
-    %{extra_arguments: extra} = state
+    {{m, f, args} = mfa, restart, shutdown, type, modules} = add_extra_args(state, child)
 
-    case start_child(m, f, extra ++ args) do
+    case start_child(m, f, args) do
       {:ok, pid, _} ->
         state = delete_child(current_pid, state)
         {:ok, save_child(pid, mfa, restart, shutdown, type, modules, state)}

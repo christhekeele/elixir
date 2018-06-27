@@ -469,6 +469,10 @@ defmodule Exception do
     "invalid extra_arguments: " <> inspect(extra)
   end
 
+  defp format_sup_data({:over_capacity, total}) do
+    "invalid number of children (exceeds max_capacity): " <> inspect(total)
+  end
+
   defp format_sup_data(other), do: "got: #{inspect(other)}"
 
   defp format_sup_spec({:duplicate_child_name, id}) do
