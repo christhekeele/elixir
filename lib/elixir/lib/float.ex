@@ -46,6 +46,38 @@ defmodule Float do
   @precision_range 0..15
   @type precision_range :: 0..15
 
+  @min_normal :math.pow(2.0, -126)
+  def min_normal, do: @min_normal
+
+  @min_subnormal :math.pow(2.0, -149)
+  def min_subnormal, do: @min_subnormal
+
+  @max_value (2 - :math.pow(2, -23)) * :math.pow(2, 127)
+  def max_value, do: @max_value
+
+  @doc """
+  Determines if two floats are close to each other.
+
+  A `tolerance` may be specified; a sane default is provided (`1.0e-5`).
+  """
+  # Implementation of first algorthim provided here:
+  #   https://floating-point-gui.de/errors/comparison/
+  def is_close(float1, float2, tolerance \\ 1.0e-5) do
+    if float1 == float2 do
+      true
+    else
+      abs1 = abs(float1)
+      abs2 = abs(float2)
+      diff = abs(float1 - float2)
+
+      if float1 == 0.0 or float2 == 0.0 or abs1 + abs2 < @min_normal do
+        diff < tolerance * @min_normal
+      else
+        diff / min(abs1 + abs2, @max_value) < tolerance
+      end
+    end
+  end
+
   @doc """
   Computes `base` raised to power of `exponent`.
 
