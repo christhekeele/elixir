@@ -216,43 +216,43 @@ defmodule FloatTest do
     test "with large positive inputs" do
       assert Float.is_close(1_000_000.0, 1_000_001.0)
       assert Float.is_close(1_000_001.0, 1_000_000.0)
-      assert not Float.is_close(10000.0, 10001.0)
-      assert not Float.is_close(10001.0, 10000.0)
+      refute Float.is_close(10000.0, 10001.0)
+      refute Float.is_close(10001.0, 10000.0)
     end
 
     test "with large negative inputs" do
       assert Float.is_close(-1_000_000.0, -1_000_001.0)
       assert Float.is_close(-1_000_001.0, -1_000_000.0)
-      assert not Float.is_close(-10000.0, -10001.0)
-      assert not Float.is_close(-10001.0, -10000.0)
+      refute Float.is_close(-10000.0, -10001.0)
+      refute Float.is_close(-10001.0, -10000.0)
     end
 
     test "with inputs close to 1" do
       assert Float.is_close(1.0000001, 1.0000002)
       assert Float.is_close(1.0000002, 1.0000001)
-      assert not Float.is_close(1.0002, 1.0001)
-      assert not Float.is_close(1.0001, 1.0002)
+      refute Float.is_close(1.0002, 1.0001)
+      refute Float.is_close(1.0001, 1.0002)
     end
 
     test "with inputs close to -1" do
       assert Float.is_close(-1.0000001, -1.0000002)
       assert Float.is_close(-1.0000002, -1.0000001)
-      assert not Float.is_close(-1.0002, -1.0001)
-      assert not Float.is_close(-1.0001, -1.0002)
+      refute Float.is_close(-1.0002, -1.0001)
+      refute Float.is_close(-1.0001, -1.0002)
     end
 
     test "with inputs between 1 and 0" do
       assert Float.is_close(0.000000001000001, 0.000000001000002)
       assert Float.is_close(0.000000001000002, 0.000000001000001)
-      assert not Float.is_close(0.000000000001002, 0.000000000001001)
-      assert not Float.is_close(0.000000000001001, 0.000000000001002)
+      refute Float.is_close(0.000000000001002, 0.000000000001001)
+      refute Float.is_close(0.000000000001001, 0.000000000001002)
     end
 
     test "with inputs between -1 and 0" do
       assert Float.is_close(-0.000000001000001, -0.000000001000002)
       assert Float.is_close(-0.000000001000002, -0.000000001000001)
-      assert not Float.is_close(-0.000000000001002, -0.000000000001001)
-      assert not Float.is_close(-0.000000000001001, -0.000000000001002)
+      refute Float.is_close(-0.000000000001002, -0.000000000001001)
+      refute Float.is_close(-0.000000000001001, -0.000000000001002)
     end
 
     test "with inputs close to 0" do
@@ -264,58 +264,58 @@ defmodule FloatTest do
       assert Float.is_close(0.0, 0.0)
       assert Float.is_close(0.0, -0.0)
       assert Float.is_close(-0.0, -0.0)
-      assert not Float.is_close(0.00000001, 0.0)
-      assert not Float.is_close(0.0, 0.00000001)
-      assert not Float.is_close(-0.00000001, 0.0)
-      assert not Float.is_close(0.0, -0.00000001)
+      refute Float.is_close(0.00000001, 0.0)
+      refute Float.is_close(0.0, 0.00000001)
+      refute Float.is_close(-0.00000001, 0.0)
+      refute Float.is_close(0.0, -0.00000001)
     end
 
     test "with inputs at the large extremes of floating point representations" do
       assert Float.is_close(Float.max_value(), Float.max_value())
-      assert not Float.is_close(Float.max_value(), -Float.max_value())
-      assert not Float.is_close(-Float.max_value(), Float.max_value())
-      assert not Float.is_close(Float.max_value(), Float.max_value() / 2)
-      assert not Float.is_close(Float.max_value(), -Float.max_value() / 2)
-      assert not Float.is_close(-Float.max_value(), Float.max_value() / 2)
+      refute Float.is_close(Float.max_value(), -Float.max_value())
+      refute Float.is_close(-Float.max_value(), Float.max_value())
+      refute Float.is_close(Float.max_value(), Float.max_value() / 2)
+      refute Float.is_close(Float.max_value(), -Float.max_value() / 2)
+      refute Float.is_close(-Float.max_value(), Float.max_value() / 2)
     end
 
     # # The BEAM does not have a notion of infinite floats
     # test "with inputs involving infinities" do
     #   assert Float.is_close(Float.positive_infinity, Float.positive_infinity)
     #   assert Float.is_close(Float.negative_infinity, Float.negative_infinity)
-    #   assert not Float.is_close(Float.negative_infinity, Float.positive_infinity)
-    #   assert not Float.is_close(Float.positive_infinity, Float.max_value)
-    #   assert not Float.is_close(Float.negative_infinity, -Float.max_value)
+    #   refute Float.is_close(Float.negative_infinity, Float.positive_infinity)
+    #   refute Float.is_close(Float.positive_infinity, Float.max_value)
+    #   refute Float.is_close(Float.negative_infinity, -Float.max_value)
     # end
 
     # The BEAM does not have a notion of NaN floats
     # test "with inputs involving NaN floats" do
-    #   assert not Float.is_close(Float.nan, Float.nan)
-    #   assert not Float.is_close(Float.nan, 0.0)
-    #   assert not Float.is_close(-0.0, Float.nan)
-    #   assert not Float.is_close(Float.nan, -0.0)
-    #   assert not Float.is_close(0.0, Float.nan)
-    #   assert not Float.is_close(Float.nan, Float.positive_infinity)
-    #   assert not Float.is_close(Float.positive_infinity, Float.nan)
-    #   assert not Float.is_close(Float.nan, Float.negative_infinity)
-    #   assert not Float.is_close(Float.negative_infinity, Float.nan)
-    #   assert not Float.is_close(Float.nan, Float.max_value)
-    #   assert not Float.is_close(Float.max_value, Float.nan)
-    #   assert not Float.is_close(Float.nan, -Float.max_value)
-    #   assert not Float.is_close(-Float.max_value, Float.nan)
-    #   assert not Float.is_close(Float.nan, Float.min_subnormal)
-    #   assert not Float.is_close(Float.min_subnormal, Float.nan)
-    #   assert not Float.is_close(Float.nan, -Float.min_subnormal)
-    #   assert not Float.is_close(-Float.min_subnormal, Float.nan)
+    #   refute Float.is_close(Float.nan, Float.nan)
+    #   refute Float.is_close(Float.nan, 0.0)
+    #   refute Float.is_close(-0.0, Float.nan)
+    #   refute Float.is_close(Float.nan, -0.0)
+    #   refute Float.is_close(0.0, Float.nan)
+    #   refute Float.is_close(Float.nan, Float.positive_infinity)
+    #   refute Float.is_close(Float.positive_infinity, Float.nan)
+    #   refute Float.is_close(Float.nan, Float.negative_infinity)
+    #   refute Float.is_close(Float.negative_infinity, Float.nan)
+    #   refute Float.is_close(Float.nan, Float.max_value)
+    #   refute Float.is_close(Float.max_value, Float.nan)
+    #   refute Float.is_close(Float.nan, -Float.max_value)
+    #   refute Float.is_close(-Float.max_value, Float.nan)
+    #   refute Float.is_close(Float.nan, Float.min_subnormal)
+    #   refute Float.is_close(Float.min_subnormal, Float.nan)
+    #   refute Float.is_close(Float.nan, -Float.min_subnormal)
+    #   refute Float.is_close(-Float.min_subnormal, Float.nan)
     # end
 
     test "with inputs on opposite sides of 0" do
-      assert not Float.is_close(1.000000001, -1.0)
-      assert not Float.is_close(-1.0, 1.000000001)
-      assert not Float.is_close(-1.000000001, 1.0)
-      assert not Float.is_close(1.0, -1.000000001)
+      refute Float.is_close(1.000000001, -1.0)
+      refute Float.is_close(-1.0, 1.000000001)
+      refute Float.is_close(-1.000000001, 1.0)
+      refute Float.is_close(1.0, -1.000000001)
       assert Float.is_close(10 * Float.min_subnormal(), 10 * -Float.min_subnormal())
-      assert not Float.is_close(10000 * Float.min_subnormal(), 10000 * -Float.min_subnormal())
+      refute Float.is_close(10000 * Float.min_subnormal(), 10000 * -Float.min_subnormal())
     end
 
     test "with inputs at the smallest extremes of floating point representations" do
@@ -327,10 +327,10 @@ defmodule FloatTest do
       assert Float.is_close(-Float.min_subnormal(), 0)
       assert Float.is_close(0, -Float.min_subnormal())
 
-      assert not Float.is_close(0.000000001, -Float.min_subnormal())
-      assert not Float.is_close(0.000000001, Float.min_subnormal())
-      assert not Float.is_close(Float.min_subnormal(), 0.000000001)
-      assert not Float.is_close(-Float.min_subnormal(), 0.000000001)
+      refute Float.is_close(0.000000001, -Float.min_subnormal())
+      refute Float.is_close(0.000000001, Float.min_subnormal())
+      refute Float.is_close(Float.min_subnormal(), 0.000000001)
+      refute Float.is_close(-Float.min_subnormal(), 0.000000001)
     end
   end
 
@@ -338,13 +338,13 @@ defmodule FloatTest do
     test "with inputs involving 0" do
       assert Float.is_close(0.0, 1.0e-40, 0.01)
       assert Float.is_close(1.0e-40, 0.0, 0.01)
-      assert not Float.is_close(1.0e-40, 0.0, 0.000001)
-      assert not Float.is_close(0.0, 1.0e-40, 0.000001)
+      refute Float.is_close(1.0e-40, 0.0, 0.000001)
+      refute Float.is_close(0.0, 1.0e-40, 0.000001)
 
       assert Float.is_close(0.0, -1.0e-40, 0.1)
       assert Float.is_close(-1.0e-40, 0.0, 0.1)
-      assert not Float.is_close(-1.0e-40, 0.0, 0.00000001)
-      assert not Float.is_close(0.0, -1.0e-40, 0.00000001)
+      refute Float.is_close(-1.0e-40, 0.0, 0.00000001)
+      refute Float.is_close(0.0, -1.0e-40, 0.00000001)
     end
   end
 end
