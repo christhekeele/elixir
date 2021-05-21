@@ -322,15 +322,25 @@ defmodule FloatTest do
       assert Float.is_close(Float.min_subnormal(), Float.min_subnormal())
       assert Float.is_close(Float.min_subnormal(), -Float.min_subnormal())
       assert Float.is_close(-Float.min_subnormal(), Float.min_subnormal())
-      assert Float.is_close(Float.min_subnormal(), 0)
-      assert Float.is_close(0, Float.min_subnormal())
-      assert Float.is_close(-Float.min_subnormal(), 0)
-      assert Float.is_close(0, -Float.min_subnormal())
+      assert Float.is_close(Float.min_subnormal(), 0.0)
+      assert Float.is_close(0.0, Float.min_subnormal())
+      assert Float.is_close(-Float.min_subnormal(), 0.0)
+      assert Float.is_close(0.0, -Float.min_subnormal())
 
       refute Float.is_close(0.000000001, -Float.min_subnormal())
       refute Float.is_close(0.000000001, Float.min_subnormal())
       refute Float.is_close(Float.min_subnormal(), 0.000000001)
       refute Float.is_close(-Float.min_subnormal(), 0.000000001)
+    end
+
+    test "gracefully handles integer inputs" do
+      refute Float.is_close(1, 1.0001)
+      refute Float.is_close(1.0001, 1)
+
+      assert Float.is_close(Float.min_subnormal(), 0)
+      assert Float.is_close(0, Float.min_subnormal())
+      assert Float.is_close(-Float.min_subnormal(), 0)
+      assert Float.is_close(0, -Float.min_subnormal())
     end
   end
 
@@ -345,6 +355,14 @@ defmodule FloatTest do
       assert Float.is_close(-1.0e-40, 0.0, 0.1)
       refute Float.is_close(-1.0e-40, 0.0, 0.00000001)
       refute Float.is_close(0.0, -1.0e-40, 0.00000001)
+    end
+
+    test "gracefully handles integer inputs" do
+      assert Float.is_close(1.0001, 1.0002, 1)
+      assert Float.is_close(1.0002, 1.0001, 1)
+
+      assert Float.is_close(1, 1.0001, 0.001)
+      assert Float.is_close(1.0001, 1, 0.001)
     end
   end
 end
