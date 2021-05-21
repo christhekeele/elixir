@@ -62,21 +62,16 @@ defmodule Float do
   """
   # Implementation of first algorthim provided here:
   #   https://floating-point-gui.de/errors/comparison/
-  def is_close(float1, float2, tolerance \\ 1.0e-5) do
-    if float1 == float2 do
-      true
-    else
-      abs1 = abs(float1)
-      abs2 = abs(float2)
-      diff = abs(float1 - float2)
-
-      if float1 == 0.0 or float2 == 0.0 or abs1 + abs2 < @min_normal do
-        diff < tolerance * @min_normal
-      else
-        diff / min(abs1 + abs2, @max_value) < tolerance
-      end
-    end
-  end
+  defguard is_close(float1, float2, tolerance \\ 1.0e-5)
+           when is_float(float1) and is_float(float2) and
+                  (is_float(tolerance) or is_integer(tolerance)) and
+                  (float1 == float2 or
+                     ((float1 == 0.0 or float2 == 0.0 or abs(float1) + abs(float2) < @min_normal) and
+                        abs(float1 - float2) < tolerance * @min_normal) or
+                     ((abs(float1) + abs(float2) < @max_value and
+                         abs(float1 - float2) / (abs(float1) + abs(float2)) < tolerance) or
+                        (abs(float1) + abs(float2) >= @max_value and
+                           abs(float1 - float2) / (abs(float1) + abs(float2)) < tolerance)))
 
   @doc """
   Computes `base` raised to power of `exponent`.
