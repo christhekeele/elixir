@@ -606,6 +606,7 @@ assoc_expr -> unmatched_expr assoc_op_eol unmatched_expr : {'$1', '$3'}.
 assoc_expr -> matched_expr assoc_op_eol unmatched_expr : {'$1', '$3'}.
 assoc_expr -> unmatched_expr assoc_op_eol matched_expr : {'$1', '$3'}.
 assoc_expr -> dot_identifier : build_identifier('$1', nil).
+assoc_expr -> capture_op_eol matched_expr : build_unary_op('$1', '$2').
 assoc_expr -> no_parens_one_expr : '$1'.
 assoc_expr -> parens_call : '$1'.
 
