@@ -80,7 +80,7 @@ capture_import(Meta, {Atom, ImportMeta, Args} = Expr, S, E, Sequential) ->
   handle_capture(Res, Meta, Expr, S, E, Sequential).
 
 capture_require(Meta, {{'.', DotMeta, [Left, Right]}, RequireMeta, Args}, S, E, Sequential) ->
-  case escape(Left, E, []) of
+  case escape(Left, S, E, []) of
     {EscLeft, []} ->
       {ELeft, SE, EE} = elixir_expand:expand(EscLeft, S, E),
 
@@ -109,7 +109,7 @@ handle_capture(LocalOrRemote, Meta, _Expr, S, E, _Sequential) ->
 capture_expr(Meta, Expr, S, E, Sequential) ->
   capture_expr(Meta, Expr, S, E, [], Sequential).
 capture_expr(Meta, Expr, S, E, Escaped, Sequential) ->
-  case escape(Expr, E, Escaped) of
+  case escape(Expr, S, E, Escaped) of
     {_, []} when not Sequential ->
       invalid_capture(Meta, Expr, E);
     {EExpr, EDict} ->
@@ -128,24 +128,30 @@ validate(Meta, [{Pos, _} | _], Expected, E) ->
 validate(_Meta, [], _Pos, _E) ->
   [].
 
-escape({'&', _, [Pos]}, _E, Dict) when is_integer(Pos), Pos > 0 ->
+escape({'&', Meta, [{'^', PMeta, [Arg]}]}, S, E, Dict) when is_atom(Arg) ->
+  PVCapture = elixir_expand:expand({'&', Meta, [{'^', PMeta, [Arg]}]}, S, E),
+  {elixir_quote:escape(PVCapture, none, true), Dict};
+escape({'&', Meta, [Arg]}, S, E, Dict) when is_atom(Arg); is_binary(Arg) ->
+  VCapture = elixir_expand:expand({'&', Meta, [Arg]}, S, E),
+  {elixir_quote:escape(VCapture, none, true), Dict};
+escape({'&', _, [Pos]}, _S, _E, Dict) when is_integer(Pos), Pos > 0 ->
   Var = {list_to_atom([$x | integer_to_list(Pos)]), [], ?var_context},
   {Var, orddict:store(Pos, Var, Dict)};
-escape({'&', Meta, [Pos]}, E, _Dict) when is_integer(Pos) ->
+escape({'&', Meta, [Pos]}, _S, E, _Dict) when is_integer(Pos) ->
   file_error(Meta, E, ?MODULE, {invalid_arity_for_capture, Pos});
-escape({'&', Meta, _} = Arg, E, _Dict) ->
+escape({'&', Meta, _} = Arg, _S, E, _Dict) ->
   file_error(Meta, E, ?MODULE, {nested_capture, Arg});
-escape({Left, Meta, Right}, E, Dict0) ->
-  {TLeft, Dict1}  = escape(Left, E, Dict0),
-  {TRight, Dict2} = escape(Right, E, Dict1),
+escape({Left, Meta, Right}, S, E, Dict0) ->
+  {TLeft, Dict1}  = escape(Left, S, E, Dict0),
+  {TRight, Dict2} = escape(Right, S, E, Dict1),
   {{TLeft, Meta, TRight}, Dict2};
-escape({Left, Right}, E, Dict0) ->
-  {TLeft, Dict1}  = escape(Left, E, Dict0),
-  {TRight, Dict2} = escape(Right, E, Dict1),
+escape({Left, Right}, S, E, Dict0) ->
+  {TLeft, Dict1}  = escape(Left, S, E, Dict0),
+  {TRight, Dict2} = escape(Right, S, E, Dict1),
   {{TLeft, TRight}, Dict2};
-escape(List, E, Dict) when is_list(List) ->
-  lists:mapfoldl(fun(X, Acc) -> escape(X, E, Acc) end, Dict, List);
-escape(Other, _E, Dict) ->
+escape(List, S, E, Dict) when is_list(List) ->
+  lists:mapfoldl(fun(X, Acc) -> escape(X, S, E, Acc) end, Dict, List);
+escape(Other, _S, _E, Dict) ->
   {Other, Dict}.
 
 args_from_arity(_Meta, A, _E) when is_integer(A), A >= 0, A =< 255 ->
@@ -196,6 +202,8 @@ format_error({invalid_args_for_capture, Arg}) ->
     "invalid args for &, expected one of:\n\n"
     "  * &Mod.fun/arity to capture a remote function, such as &Enum.map/2\n"
     "  * &fun/arity to capture a local or imported function, such as &is_atom/1\n"
-    "  * &some_code(&1, ...) containing at least one argument as &1, such as &List.flatten(&1)\n\n"
+    "  * &some_code(&1, ...) containing at least one argument as &1, such as &List.flatten(&1)\n"
+    "  * &\"some_string\" containing a compile-time string literal\n"
+    "  * &:some_atom containing a compile-time atom literal\n\n"
     "Got: ~ts",
   io_lib:format(Message, ['Elixir.Macro':to_string(Arg)]).

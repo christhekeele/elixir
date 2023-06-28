@@ -219,6 +219,20 @@ expand({'&', Meta, [{'/', _, [{super, _, Context}, Arity]} = Expr]}, S, E) when 
       expand_fn_capture(Meta, Expr, S, E)
   end;
 
+%% Captures
+
+expand({'&', Meta, [{'^', PMeta, [Arg]}]}, S, E) when is_atom(Arg) ->
+  expand_pinned_tagged_variable_capture(Arg, Arg, Meta, PMeta, S, E);
+
+expand({'&', Meta, [{'^', PMeta, [Arg]}]}, S, E) when is_binary(Arg) ->
+  expand_pinned_tagged_variable_capture(Arg, erlang:binary_to_atom(Arg), Meta, PMeta, S, E);
+
+expand({'&', Meta, [Arg]}, S, E) when is_atom(Arg) ->
+  expand_tagged_variable_capture(Arg, Arg, Meta, S, E);
+
+expand({'&', Meta, [Arg]}, S, E) when is_binary(Arg) ->
+  expand_tagged_variable_capture(Arg, erlang:binary_to_atom(Arg), Meta, S, E);
+
 expand({'&', Meta, [Arg]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "&", S, E),
   expand_fn_capture(Meta, Arg, S, E);
@@ -499,6 +513,14 @@ resolve_super(Meta, Arity, E) ->
       file_error(Meta, E, ?MODULE, wrong_number_of_args_for_super)
   end.
 
+expand_tagged_variable_capture(Key, Name, Meta, S, E) ->
+  {Var, NS, NE} = expand({Name, Meta, maps:get(module, E)}, S, E),
+  {{Key, Var}, NS, NE}.
+
+expand_pinned_tagged_variable_capture(Key, Name, Meta, PMeta, S, E) ->
+  {Var, NS, NE} = expand({'^', PMeta, [{Name, Meta, maps:get(module, E)}]}, S, E),
+  {{Key, Var}, NS, NE}.
+
 expand_fn_capture(Meta, Arg, S, E) ->
   case elixir_fn:capture(Meta, Arg, S, E) of
     {{remote, Remote, Fun, Arity}, RemoteMeta, SE, EE} ->
@@ -585,6 +607,7 @@ is_useless_building(_, _, _) ->
 %% However, lexical information is.
 expand_arg(Arg, Acc, E) when is_number(Arg); is_atom(Arg); is_binary(Arg); is_pid(Arg) ->
   {Arg, Acc, E};
+
 expand_arg(Arg, {Acc, S}, E) ->
   {EArg, SAcc, EAcc} = expand(Arg, elixir_env:reset_read(Acc, S), E),
   {EArg, {SAcc, S}, EAcc}.
