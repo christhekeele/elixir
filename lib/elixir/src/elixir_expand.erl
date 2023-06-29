@@ -205,11 +205,17 @@ expand({'$', Meta, [{'^', PMeta, [Arg]}]}, S, E) when is_atom(Arg) ->
 expand({'$', Meta, [{'^', PMeta, [Arg]}]}, S, E) when is_binary(Arg) ->
   expand_pinned_tagged_variable_capture(Arg, erlang:binary_to_atom(Arg), Meta, PMeta, S, E);
 
+expand({'$', Meta, [{'^', PMeta, [Arg]}]}, S, E) when is_list(Arg) ->
+  expand_pinned_tagged_variable_capture(Arg, erlang:list_to_atom(Arg), Meta, PMeta, S, E);
+
 expand({'$', Meta, [Arg]}, S, E) when is_atom(Arg) ->
   expand_tagged_variable_capture(Arg, Arg, Meta, S, E);
 
 expand({'$', Meta, [Arg]}, S, E) when is_binary(Arg) ->
   expand_tagged_variable_capture(Arg, erlang:binary_to_atom(Arg), Meta, S, E);
+
+expand({'$', Meta, [Arg]}, S, E) when is_list(Arg) ->
+  expand_tagged_variable_capture(Arg, erlang:list_to_atom(Arg), Meta, S, E);
 
 %% Functions
 
