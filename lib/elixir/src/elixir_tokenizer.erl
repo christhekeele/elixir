@@ -6,6 +6,9 @@
 -define(at_op(T),
   T =:= $@).
 
+-define(tagged_variable_op(T),
+  T =:= $$).
+
 -define(capture_op(T),
   T =:= $&).
 
@@ -317,7 +320,7 @@ tokenize([$:, T1, T2 | Rest], Line, Column, Scope, Tokens) when
 % ## Single Token Operators
 tokenize([$:, T | Rest], Line, Column, Scope, Tokens) when
     ?at_op(T); ?unary_op(T); ?capture_op(T); ?dual_op(T); ?mult_op(T);
-    ?rel_op(T); ?match_op(T); ?pipe_op(T); T =:= $. ->
+    ?rel_op(T); ?match_op(T); ?pipe_op(T); ?tagged_variable_op(T); T =:= $. ->
   Token = {atom, {Line, Column, nil}, list_to_atom([T])},
   tokenize(Rest, Line, Column + 2, Scope, [Token | Tokens]);
 
@@ -459,6 +462,9 @@ tokenize([$& | Rest], Line, Column, Scope, Tokens) ->
 
   Token = {Kind, {Line, Column, nil}, '&'},
   tokenize(Rest, Line, Column + 1, Scope, [Token | Tokens]);
+
+tokenize([T | Rest], Line, Column, Scope, Tokens) when ?tagged_variable_op(T) ->
+  handle_unary_op(Rest, Line, Column, tagged_variable_op, 1, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T | Rest], Line, Column, Scope, Tokens) when ?at_op(T) ->
   handle_unary_op(Rest, Line, Column, at_op, 1, list_to_atom([T]), Scope, Tokens);
@@ -882,7 +888,7 @@ handle_dot([$., T1, T2 | Rest], Line, Column, DotInfo, Scope, Tokens) when
 % ## Single Token Operators
 handle_dot([$., T | Rest], Line, Column, DotInfo, Scope, Tokens) when
     ?at_op(T); ?unary_op(T); ?capture_op(T); ?dual_op(T); ?mult_op(T);
-    ?rel_op(T); ?match_op(T); ?pipe_op(T) ->
+    ?rel_op(T); ?match_op(T); ?pipe_op(T); ?tagged_variable_op(T) ->
   handle_call_identifier(Rest, Line, Column, DotInfo, 1, [T], Scope, Tokens);
 
 % ## Exception for .( as it needs to be treated specially in the parser
@@ -1806,7 +1812,8 @@ prune_tokens([{OpType, _, _} | _] = Tokens, [], Terminators)
        OpType =:= in_match_op; OpType =:= type_op; OpType =:= dual_op; OpType =:= mult_op;
        OpType =:= power_op; OpType =:= concat_op; OpType =:= range_op; OpType =:= xor_op;
        OpType =:= pipe_op; OpType =:= stab_op; OpType =:= when_op; OpType =:= assoc_op;
-       OpType =:= rel_op; OpType =:= ternary_op; OpType =:= capture_op ->
+       OpType =:= rel_op; OpType =:= ternary_op; OpType =:= capture_op;
+       OpType =:= tagged_variable_op ->
   {Tokens, Terminators};
 %%% or we traverse until the end.
 prune_tokens([_ | Tokens], Opener, Terminators) ->

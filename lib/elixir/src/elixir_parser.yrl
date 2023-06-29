@@ -4,10 +4,10 @@ Nonterminals
   no_parens_expr no_parens_zero_expr no_parens_one_expr no_parens_one_ambig_expr
   bracket_expr bracket_at_expr bracket_arg matched_expr unmatched_expr
   unmatched_op_expr matched_op_expr no_parens_op_expr no_parens_many_expr
-  comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol capture_op_eol
-  dual_op_eol mult_op_eol power_op_eol concat_op_eol xor_op_eol pipe_op_eol
-  stab_op_eol arrow_op_eol match_op_eol when_op_eol in_op_eol in_match_op_eol
-  type_op_eol rel_op_eol range_op_eol ternary_op_eol
+  comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol tagged_variable_op_eol
+  capture_op_eol dual_op_eol mult_op_eol power_op_eol concat_op_eol xor_op_eol
+  pipe_op_eol stab_op_eol arrow_op_eol match_op_eol when_op_eol in_op_eol
+  in_match_op_eol type_op_eol rel_op_eol range_op_eol ternary_op_eol
   open_paren close_paren empty_paren eoe
   list list_args open_bracket close_bracket
   tuple open_curly close_curly
@@ -34,7 +34,7 @@ Terminals
   bin_heredoc list_heredoc
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
   type_op dual_op mult_op power_op concat_op range_op xor_op pipe_op stab_op when_op
-  capture_int capture_op assoc_op rel_op ternary_op dot_call_op
+  tagged_variable_op capture_int capture_op assoc_op rel_op ternary_op dot_call_op
   'true' 'false' 'nil' 'do' eol ';' ',' '.'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
   int flt char
@@ -57,32 +57,33 @@ Expect 3.
 %% %{user | foo => bar} syntax.
 
 Left       5 do.
-Right     10 stab_op_eol.     %% ->
+Right     10 stab_op_eol.            %% ->
 Left      20 ','.
-Left      40 in_match_op_eol. %% <-, \\ (allowed in matches along =)
-Right     50 when_op_eol.     %% when
-Right     60 type_op_eol.     %% ::
-Right     70 pipe_op_eol.     %% |
-Right     80 assoc_op_eol.    %% =>
-Nonassoc  90 capture_op_eol.  %% &
-Right    100 match_op_eol.    %% =
-Left     120 or_op_eol.       %% ||, |||, or
-Left     130 and_op_eol.      %% &&, &&&, and
-Left     140 comp_op_eol.     %% ==, !=, =~, ===, !==
-Left     150 rel_op_eol.      %% <, >, <=, >=
-Left     160 arrow_op_eol.    %% |>, <<<, >>>, <<~, ~>>, <~, ~>, <~>, <|>
-Left     170 in_op_eol.       %% in, not in
-Left     180 xor_op_eol.      %% ^^^
-Right    190 ternary_op_eol.  %% //
-Right    200 concat_op_eol.   %% ++, --, +++, ---, <>
-Right    200 range_op_eol.    %% ..
-Left     210 dual_op_eol.     %% +, -
-Left     220 mult_op_eol.     %% *, /
-Left     230 power_op_eol.    %% **
-Nonassoc 300 unary_op_eol.    %% +, -, !, ^, not, ~~~
+Left      40 in_match_op_eol.        %% <-, \\ (allowed in matches along =)
+Right     50 when_op_eol.            %% when
+Right     60 type_op_eol.            %% ::
+Right     70 pipe_op_eol.            %% |
+Right     80 assoc_op_eol.           %% =>
+Nonassoc  85 tagged_variable_op_eol. %% $
+Nonassoc  90 capture_op_eol.         %% &
+Right    100 match_op_eol.           %% =
+Left     120 or_op_eol.              %% ||, |||, or
+Left     130 and_op_eol.             %% &&, &&&, and
+Left     140 comp_op_eol.            %% ==, !=, =~, ===, !==
+Left     150 rel_op_eol.             %% <, >, <=, >=
+Left     160 arrow_op_eol.           %% |>, <<<, >>>, <<~, ~>>, <~, ~>, <~>, <|>
+Left     170 in_op_eol.              %% in, not in
+Left     180 xor_op_eol.             %% ^^^
+Right    190 ternary_op_eol.         %% //
+Right    200 concat_op_eol.          %% ++, --, +++, ---, <>
+Right    200 range_op_eol.           %% ..
+Left     210 dual_op_eol.            %% +, -
+Left     220 mult_op_eol.            %% *, /
+Left     230 power_op_eol.           %% **
+Nonassoc 300 unary_op_eol.           %% +, -, !, ^, not, ~~~
 Left     310 dot_call_op.
-Left     310 dot_op.          %% .
-Nonassoc 320 at_op_eol.       %% @
+Left     310 dot_op.                 %% .
+Nonassoc 320 at_op_eol.              %% @
 Nonassoc 330 dot_identifier.
 
 %%% MAIN FLOW OF EXPRESSIONS
@@ -144,6 +145,7 @@ expr -> unmatched_expr : '$1'.
 matched_expr -> matched_expr matched_op_expr : build_op('$1', '$2').
 matched_expr -> unary_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> at_op_eol matched_expr : build_unary_op('$1', '$2').
+matched_expr -> tagged_variable_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> capture_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> no_parens_one_expr : '$1'.
 matched_expr -> no_parens_zero_expr : '$1'.
@@ -156,12 +158,14 @@ unmatched_expr -> unmatched_expr unmatched_op_expr : build_op('$1', '$2').
 unmatched_expr -> unmatched_expr no_parens_op_expr : warn_no_parens_after_do_op('$2'), build_op('$1', '$2').
 unmatched_expr -> unary_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> at_op_eol expr : build_unary_op('$1', '$2').
+unmatched_expr -> tagged_variable_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> capture_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> block_expr : '$1'.
 
 no_parens_expr -> matched_expr no_parens_op_expr : build_op('$1', '$2').
 no_parens_expr -> unary_op_eol no_parens_expr : build_unary_op('$1', '$2').
 no_parens_expr -> at_op_eol no_parens_expr : build_unary_op('$1', '$2').
+no_parens_expr -> tagged_variable_op_eol no_parens_expr : build_unary_op('$1', '$2').
 no_parens_expr -> capture_op_eol no_parens_expr : build_unary_op('$1', '$2').
 no_parens_expr -> no_parens_one_ambig_expr : '$1'.
 no_parens_expr -> no_parens_many_expr : '$1'.
@@ -392,6 +396,9 @@ unary_op_eol -> dual_op eol : '$1'.
 unary_op_eol -> ternary_op : '$1'.
 unary_op_eol -> ternary_op eol : '$1'.
 
+tagged_variable_op_eol -> tagged_variable_op : '$1'.
+tagged_variable_op_eol -> tagged_variable_op eol : '$1'.
+
 capture_op_eol -> capture_op : '$1'.
 capture_op_eol -> capture_op eol : '$1'.
 
@@ -605,6 +612,7 @@ assoc_expr -> matched_expr assoc_op_eol matched_expr : {'$1', '$3'}.
 assoc_expr -> unmatched_expr assoc_op_eol unmatched_expr : {'$1', '$3'}.
 assoc_expr -> matched_expr assoc_op_eol unmatched_expr : {'$1', '$3'}.
 assoc_expr -> unmatched_expr assoc_op_eol matched_expr : {'$1', '$3'}.
+assoc_expr -> tagged_variable_op_eol matched_expr : build_unary_op('$1', '$2').
 assoc_expr -> dot_identifier : build_identifier('$1', nil).
 assoc_expr -> no_parens_one_expr : '$1'.
 assoc_expr -> parens_call : '$1'.

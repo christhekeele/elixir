@@ -197,6 +197,20 @@ expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
 expand({quote, Meta, [_, _]}, _S, E) ->
   file_error(Meta, E, ?MODULE, {invalid_args, 'quote'});
 
+%% Tagged Variables
+
+expand({'$', Meta, [{'^', PMeta, [Arg]}]}, S, E) when is_atom(Arg) ->
+  expand_pinned_tagged_variable_capture(Arg, Arg, Meta, PMeta, S, E);
+
+expand({'$', Meta, [{'^', PMeta, [Arg]}]}, S, E) when is_binary(Arg) ->
+  expand_pinned_tagged_variable_capture(Arg, erlang:binary_to_atom(Arg), Meta, PMeta, S, E);
+
+expand({'$', Meta, [Arg]}, S, E) when is_atom(Arg) ->
+  expand_tagged_variable_capture(Arg, Arg, Meta, S, E);
+
+expand({'$', Meta, [Arg]}, S, E) when is_binary(Arg) ->
+  expand_tagged_variable_capture(Arg, erlang:binary_to_atom(Arg), Meta, S, E);
+
 %% Functions
 
 expand({'&', Meta, [{super, SuperMeta, Args} = Expr]}, S, E) when is_list(Args) ->
@@ -498,6 +512,14 @@ resolve_super(Meta, Arity, E) ->
     _ ->
       file_error(Meta, E, ?MODULE, wrong_number_of_args_for_super)
   end.
+
+expand_tagged_variable_capture(Key, Name, Meta, S, E) ->
+  {Var, NS, NE} = expand({Name, Meta, maps:get(module, E)}, S, E),
+  {{Key, Var}, NS, NE}.
+
+expand_pinned_tagged_variable_capture(Key, Name, Meta, PMeta, S, E) ->
+  {Var, NS, NE} = expand({'^', PMeta, [{Name, Meta, maps:get(module, E)}]}, S, E),
+  {{Key, Var}, NS, NE}.
 
 expand_fn_capture(Meta, Arg, S, E) ->
   case elixir_fn:capture(Meta, Arg, S, E) of
