@@ -1401,6 +1401,19 @@ defmodule BadMapError do
   end
 end
 
+defmodule BadMapSetError do
+  @moduledoc """
+  An exception raised when something expected a `MapSet`, but received something else.
+  """
+
+  defexception [:term]
+
+  @impl true
+  def message(exception) do
+    "expected a MapSet, got: #{inspect(exception.term)}"
+  end
+end
+
 defmodule BadBooleanError do
   @moduledoc """
   An exception raised when an operator expected a boolean, but received something else.

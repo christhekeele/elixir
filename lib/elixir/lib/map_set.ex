@@ -66,6 +66,7 @@ defmodule MapSet do
   @doc """
   Checks if `map_set` contains `value`. Allowed in guards.
 
+  If `map_set` is not a `MapSet`, raises a `BadMapSetError`.
   Otherwise equivalent to `member?/2`.
 
   ## Examples
@@ -82,11 +83,32 @@ defmodule MapSet do
       ...> end
       true
 
+      iex> MapSet.is_member([1, 2, 3], 2)
+      ** (BadMapSetError) expected a MapSet, got: [1, 2, 3]
+
   """
   @doc guard: true, since: "1.17.0"
-  defguard is_member(map_set, value)
-           when is_struct(map_set, __MODULE__) and
-                  is_map_key(map_set.map, value)
+  defmacro is_member(map_set, value) do
+    case Macro.Env.in_guard?(__CALLER__) do
+      true ->
+        quote do
+          (is_struct(unquote(map_set), unquote(__MODULE__)) or :fail) and
+            is_map_key(unquote(map_set).map, unquote(value))
+        end
+
+      false ->
+        quote do
+          map_set = unquote(map_set)
+          value = unquote(value)
+
+          if is_struct(map_set, unquote(__MODULE__)) do
+            is_map_key(map_set.map, value)
+          else
+            raise BadMapSetError, term: map_set
+          end
+        end
+    end
+  end
 
   @doc """
   Returns a new set.
