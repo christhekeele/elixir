@@ -3867,6 +3867,9 @@ defmodule Kernel do
   Similar to `case/2`, any assignment in the condition will be available
   on both clauses, as well as after the `if` expression.
 
+  If you find yourself nesting conditionals inside conditionals,
+  consider using `cond/1`.
+
   ## One-liner examples
 
       if(foo, do: bar)
@@ -3897,11 +3900,35 @@ defmodule Kernel do
         baz
       end
 
-  If you find yourself nesting conditionals inside conditionals,
-  consider using `cond/1`.
+  ## Mixed examples
+
+  You can mix the two styles only with the `:else` keyword and a `do`-`end` block:
+
+      if foo, else: baz do
+        bar
+      end
+
+  This usage is meant to allow for a slightly more compact idiom for conditional re-assignment,
+  compare:
+
+      foo = if condition do
+        modify(foo)
+      else
+        foo
+      end
+
+      foo = if condition, else: foo do
+        modify(foo)
+      end
+
   """
   defmacro if(condition, clauses) do
     build_if(condition, clauses)
+  end
+
+  @doc false
+  defmacro if(condition, keywords, blocks) do
+    build_if(condition, keywords, blocks)
   end
 
   defp build_if(condition, do: do_clause) do
@@ -3923,6 +3950,10 @@ defmodule Kernel do
   defp build_if(_condition, _arguments) do
     raise ArgumentError,
           "invalid or duplicate keys for if, only \"do\" and an optional \"else\" are permitted"
+  end
+
+  defp build_if(condition, [else: else_clause], blocks) do
+    build_if(condition, blocks ++ [else: else_clause])
   end
 
   @doc """

@@ -262,6 +262,28 @@ defmodule KernelTest do
     end
   end
 
+  test "if/3 with valid keys" do
+    assert :expected ==
+             (if false, else: :expected do
+                :unexpected
+              end)
+  end
+
+  test "if/3 with invalid keys" do
+    error_message =
+      "invalid or duplicate keys for if, only \"do\" and an optional \"else\" are permitted"
+
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("""
+        if false, else: :first_else do
+          :do_clause
+        else
+          :second_else
+        end
+      """)
+    end
+  end
+
   test "unless/2 with invalid keys" do
     error_message =
       "invalid or duplicate keys for unless, only \"do\" " <>
