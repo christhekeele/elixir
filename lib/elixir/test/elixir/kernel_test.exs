@@ -235,7 +235,7 @@ defmodule KernelTest do
 
   test "if/2 with invalid keys" do
     error_message =
-      "invalid or duplicate keys for if, only \"do\" and an optional \"else\" are permitted"
+      "invalid or duplicate keys for if, only \"do\" and a single optional \"else\" are permitted"
 
     assert_raise ArgumentError, error_message, fn ->
       Code.eval_string("if true, foo: 7")
@@ -271,7 +271,7 @@ defmodule KernelTest do
 
   test "if/3 with invalid keys" do
     error_message =
-      "invalid or duplicate keys for if, only \"do\" and an optional \"else\" are permitted"
+      "invalid or duplicate keys for if, only \"do\" and a single optional \"else\" are permitted"
 
     assert_raise ArgumentError, error_message, fn ->
       Code.eval_string("""
@@ -279,6 +279,16 @@ defmodule KernelTest do
           :do_clause
         else
           :second_else
+        end
+      """)
+    end
+
+    assert_raise ArgumentError, error_message, fn ->
+      Code.eval_string("""
+        if false, nonsense: :keyword do
+          :do_clause
+        else
+          :else_clause
         end
       """)
     end

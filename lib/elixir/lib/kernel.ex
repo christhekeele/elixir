@@ -3949,11 +3949,16 @@ defmodule Kernel do
 
   defp build_if(_condition, _arguments) do
     raise ArgumentError,
-          "invalid or duplicate keys for if, only \"do\" and an optional \"else\" are permitted"
+          "invalid or duplicate keys for if, only \"do\" and a single optional \"else\" are permitted"
   end
 
   defp build_if(condition, [else: else_clause], blocks) do
     build_if(condition, blocks ++ [else: else_clause])
+  end
+
+  defp build_if(_condition, _keywords, _blocks) do
+    raise ArgumentError,
+          "invalid or duplicate keys for if, only \"do\" and a single optional \"else\" are permitted"
   end
 
   @doc """
