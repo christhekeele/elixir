@@ -113,13 +113,26 @@ In said cases, if you want to change a value, you must return the value from the
 ```elixir
 iex> x = 1
 1
-iex> x = if true do
+iex> x = if x < 5 do
 ...>   x + 1
 ...> else
 ...>   x
 ...> end
 2
 ```
+
+This sort of conditional re-assignment is common enough, there is a shorthand idiom for it:
+
+```elixir
+iex> x = 1
+1
+iex> x = if x < 5, else: x do
+...>   x + 1
+...> end
+2
+```
+
+This idiom is best reserved for logic where the condition and fallback branch are trivial, but the success branch is involved and merits extra readability.
 
 > #### `if` is a macro {: .info}
 >
