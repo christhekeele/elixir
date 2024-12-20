@@ -3614,6 +3614,14 @@ defmodule Kernel do
     raise ArgumentError, "module attributes set via @ cannot start with an uppercase letter"
   end
 
+  defmacro @{:^, meta, [binary]} when is_binary(binary) do
+    {binary, {:^, meta, [Macro.var(String.to_existing_atom(binary), nil)]}}
+  end
+
+  defmacro @{:^, meta, [atom]} when is_atom(atom) do
+    {atom, {:^, meta, [Macro.var(atom, nil)]}}
+  end
+
   defmacro @{name, meta, args} do
     assert_module_scope(__CALLER__, :@, 1)
     function? = __CALLER__.function != nil
@@ -3662,6 +3670,14 @@ defmodule Kernel do
       true ->
         do_at(args, meta, name, function?, __CALLER__)
     end
+  end
+
+  defmacro @binary when is_binary(binary) do
+    {binary, Macro.var(String.to_existing_atom(binary), nil)}
+  end
+
+  defmacro @atom when is_atom(atom) do
+    {atom, Macro.var(atom, nil)}
   end
 
   # @attribute(value)
