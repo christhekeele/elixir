@@ -96,6 +96,8 @@ defmodule Macro do
 
   @typep output_expr :: {output_expr | atom, metadata, atom | [output]}
 
+  @type to_string_opt :: {:indent, String.indentation()}
+
   @typedoc """
   A keyword list of AST metadata.
 
@@ -1253,16 +1255,32 @@ defmodule Macro do
   attempt to inspect them, to aid debugging, although
   the elements won't be formatted accordingly.
 
+  ## Options
+
+  This function accepts these options:
+
+    * `:indent` (since v1.20.0) - a `t:String.indentation/0` to apply
+      at the start of every line.
+
   ## Examples
 
       iex> Macro.to_string(quote(do: foo.bar(1, 2, 3)))
       "foo.bar(1, 2, 3)"
 
+      iex> Macro.to_string(quote(do: foo.bar(1, 2, 3)), indent: {:spaces, 2})
+      "  foo.bar(1, 2, 3)"
+
   """
-  @spec to_string(t()) :: String.t()
-  def to_string(tree) do
+  @spec to_string(t(), [to_string_opt]) :: String.t()
+  def to_string(tree, opts \\ []) do
+    {indentation, opts} = Keyword.pop(opts, :indent)
+
     doc =
-      Inspect.Algebra.format(Code.quoted_to_algebra(tree, migrate_charlists_as_sigils: true), 98)
+      Inspect.Algebra.format(
+        Code.quoted_to_algebra(tree, migrate_charlists_as_sigils: true),
+        98,
+        indentation
+      )
 
     IO.iodata_to_binary(doc)
   end

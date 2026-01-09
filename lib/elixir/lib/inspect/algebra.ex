@@ -43,6 +43,9 @@ defmodule Inspect.Opts do
     * `:inspect_fun` (since v1.9.0) - a function to build algebra documents.
       Defaults to `Inspect.Opts.default_inspect_fun/0`.
 
+    * `:indent` (since v1.20.0) - a `t:String.indentation/0` to apply
+      at the start of every line.
+
     * `:limit` - limits the number of items that are inspected for tuples,
       bitstrings, maps, lists and any other collection of items, with the exception of
       printable strings and printable charlists which use the `:printable_limit` option.
@@ -263,6 +266,8 @@ defmodule Inspect.Algebra do
   @container_separator ","
   @tail_separator " |"
   @newline "\n"
+  @space " "
+  @tab "\t"
 
   # Functional interface to "doc" records
 
@@ -1155,6 +1160,9 @@ defmodule Inspect.Algebra do
 
   The document starts flat (without breaks) until a group is found.
 
+  An optional `t:String.indentation/0` can be given to prepend
+  to every new line in the formatted `doc`.
+
   ## Examples
 
       iex> doc = Inspect.Algebra.glue("hello", " ", "world")
@@ -1164,9 +1172,17 @@ defmodule Inspect.Algebra do
       iex> doc |> Inspect.Algebra.format(10) |> IO.iodata_to_binary()
       "hello\nworld"
 
+      iex> doc = Inspect.Algebra.glue("hello", " ", "world")
+      iex> doc = Inspect.Algebra.group(doc)
+      iex> doc |> Inspect.Algebra.format(30, {:spaces, 2}) |> IO.iodata_to_binary()
+      "  hello world"
+      iex> doc |> Inspect.Algebra.format(10, {:spaces, 2}) |> IO.iodata_to_binary()
+      "  hello\n  world"
+
   """
-  @spec format(t, non_neg_integer | :infinity) :: iodata
-  def format(doc, width) when is_doc(doc) and is_width(width) do
+  @spec format(t, non_neg_integer | :infinity, indentation :: String.indentation()) :: iodata
+  def format(doc, width, indentation \\ nil) when is_doc(doc) and is_width(width) do
+    indentation = indentation_to_algebra(indentation)
     format(width, 0, [{0, :flat, doc}], <<>>)
   end
 
@@ -1277,6 +1293,7 @@ defmodule Inspect.Algebra do
   @spec format(
           width :: non_neg_integer() | :infinity,
           column :: non_neg_integer(),
+          indentation :: String.indentation(),
           [{integer, mode, t} | :group_over],
           binary
         ) :: iodata
@@ -1394,4 +1411,25 @@ defmodule Inspect.Algebra do
 
   defp indent(0), do: @newline
   defp indent(i), do: @newline <> :binary.copy(" ", i)
+
+  defp indentation_to_algebra({:spaces, amount}) when amount >= 0 do
+    :binary.copy(@space, amount) |> indentation_to_algebra()
+  end
+
+  defp indentation_to_algebra({:tabs, amount}) when amount >= 0 do
+    :binary.copy(@tab, amount) |> indentation_to_algebra()
+  end
+
+  defp indentation_to_algebra({binary, amount}) when is_binary(binary) and amount >= 0 do
+    :binary.copy(binary, amount) |> indentation_to_algebra()
+  end
+
+  defp indentation_to_algebra(binary) when is_binary(binary) do
+    size = binary |> String.graphemes() |> length
+    doc_string(binary, size)
+  end
+
+  defp indentation_to_algebra(nil) do
+    empty()
+  end
 end
