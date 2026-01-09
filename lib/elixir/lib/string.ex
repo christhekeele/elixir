@@ -291,8 +291,10 @@ defmodule String do
   @type indentation ::
           {:spaces, amount :: non_neg_integer}
           | {:tabs, amount :: non_neg_integer}
-          | {binary, amount :: non_neg_integer}
-          | binary
+          | {:binary, {binary, amount :: non_neg_integer}}
+          | {:binary, binary}
+
+  @type indent_opt :: indentation | {:newlines, Regex.t() | list(binary) | binary}
 
   @typedoc """
   Pattern used in functions like `replace/4` and `split/3`.
@@ -3215,41 +3217,66 @@ defmodule String do
   @doc """
   Returns a string with indentation applied at the start of every line.
 
-  Accepts an `t:indentation/0` specifier to apply:
+  ## Options
 
-  - `{:spaces, amount}`: an `amount` of spaces
-  - `{:tabs, amount}`: an `amount` of tabs
-  - `{string, times}`: some `string` multiple `times`
-  - `string`: an arbitrary string
+    * `indentation` - An `t:indentation/0` option specifier to apply:
+      * `spaces: amount`: an `amount` of spaces
+      * `tabs: amount`: an `amount` of tabs
+      * `binary: {string, times}`: some `string` multiple `times`
+      * `binary: string`: an arbitrary `string`
+
+    * `:newlines` - Any valid `pattern` to `split/3`.
+
+      The default
+      `~r/\r\n|\r|\n/` correctly handles cross-platform newlines. You might use
+      `~r/(\r\n|\r|\n)+(?!$)/` to skip indenting empty or trailing lines.
+
+      A string pattern or list of string patterns may also be used.
 
   ## Examples
 
-      iex> string = "every\\nwhich\\nway"
-      iex> String.indent(string, {:spaces, 2})
-      "  every\\n  which\\n  way"
+      iex> string = "every\\n\\nwhich\\nway\\n"
+      iex> String.indent(string)
+      "  every\\n  \\n  which\\n  way\\n  "
 
-      iex> string = "every\\nwhich\\nway"
-      iex> String.indent(string, {:tabs, 1})
-      "\tevery\\n\twhich\\n\tway"
+      iex> string = "every\\n\\nwhich\\nway\\n"
+      iex> String.indent(string, newlines: ~r/(\r\\n|\r|\\n)+(?!$)/)
+      "  every\\n\\n  which\\n  way\\n"
 
-      iex> string = "every\\nwhich\\nway"
-      iex> String.indent(string, "+ ")
-      "+ every\\n+ which\\n+ way"
+      iex> string = "every\\n\\nwhich\\nway\\n"
+      iex> String.indent(string, spaces: 4)
+      "    every\\n    \\n    which\\n    way\\n    "
+
+      iex> string = "every\\n\\nwhich\\nway\\n"
+      iex> String.indent(string, tabs: 1)
+      "\tevery\\n\t\\n\twhich\\n\tway\\n\t"
+
+      iex> string = "every\\n\\nwhich\\nway\\n"
+      iex> String.indent(string, binary: {"~", 2})
+      "~~every\\n~~\\n~~which\\n~~way\\n~~"
+
+      iex> string = "every\\n\\nwhich\\nway\\n"
+      iex> String.indent(string, binary: "+ ")
+      "+ every\\n+ \\n+ which\\n+ way\\n+ "
 
   """
   @doc since: "1.20.0"
-  @spec indent(t, indentation) :: t
-  def indent(string, indentation) do
+  @spec indent(t, list(indent_opt)) :: t
+  def indent(string, opts \\ []) do
+    {newlines, opts} = Keyword.pop(opts, :newlines, ["\n", "\r", "\r\n"])
+    {indentation_opts, opts} = Keyword.split(opts, ~w[tabs spaces binary]a)
+
+    indentation =
+      case indentation_opts do
+        [] -> {:spaces, 2}
+        [indentation | []] -> indentation
+      end
+
+    [] = opts
+
     indent = indentation_to_binary(indentation)
 
-    [start | newlines] = split(string, ~r/\r\n|\r|\n/, include_captures: true)
-
-    [
-      [indent, start]
-      | newlines
-        |> Enum.chunk_every(2)
-        |> Enum.map(&[hd(&1), indent | tl(&1)])
-    ]
+    [indent, String.replace(string, newlines, &[&1, indent])]
     |> IO.iodata_to_binary()
   end
 
@@ -3298,14 +3325,16 @@ defmodule String do
   defp reverse_characters_to_binary(acc),
     do: acc |> :lists.reverse() |> :unicode.characters_to_binary()
 
-  defp indentation_to_binary({:spaces, amount}) when amount >= 0,
-    do: :binary.copy(@space, amount)
+  defp indentation_to_binary({:spaces, amount})
+       when is_integer(amount) and amount >= 0, do: duplicate(@space, amount)
 
-  defp indentation_to_binary({:tabs, amount}) when amount >= 0,
-    do: :binary.copy(@tab, amount)
+  defp indentation_to_binary({:tabs, amount})
+       when is_integer(amount) and amount >= 0, do: duplicate(@tab, amount)
 
-  defp indentation_to_binary({binary, amount}) when is_binary(binary) and amount >= 0,
-    do: :binary.copy(binary, amount)
+  defp indentation_to_binary({:binary, {binary, amount}})
+       when is_binary(binary) and
+              is_integer(amount) and amount >= 0,
+       do: duplicate(binary, amount)
 
-  defp indentation_to_binary(binary) when is_binary(binary), do: binary
+  defp indentation_to_binary({:binary, binary}) when is_binary(binary), do: binary
 end
