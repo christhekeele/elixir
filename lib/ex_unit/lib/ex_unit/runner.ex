@@ -538,7 +538,7 @@ defmodule ExUnit.Runner do
   end
 
   defp exec_on_exit(test_or_test_module, pid, timeout) do
-    case ExUnit.OnExitHandler.run(pid, test_or_test_module, timeout) do
+    case run_exec_on_exit(test_or_test_module, pid, timeout) do
       :ok ->
         test_or_test_module
 
@@ -546,6 +546,36 @@ defmodule ExUnit.Runner do
         state = test_or_test_module.state || failed(kind, reason, prune_stacktrace(stack))
         %{test_or_test_module | state: state}
     end
+  end
+
+  defp run_exec_on_exit(test_module = %ExUnit.TestModule{}, pid, timeout) do
+    ExUnit.OnExitHandler.run(
+      pid,
+      %ExUnit.TestModule.Result{
+        file: test_module.file,
+        name: test_module.name,
+        parameters: test_module.parameters,
+        state: test_module.state,
+        tags: test_module.tags
+      },
+      timeout
+    )
+  end
+
+  defp run_exec_on_exit(test = %ExUnit.Test{}, pid, timeout) do
+    ExUnit.OnExitHandler.run(
+      pid,
+      %ExUnit.Test.Result{
+        name: test.name,
+        module: test.module,
+        state: test.state,
+        time: test.time,
+        tags: test.tags,
+        parameters: test.parameters,
+        description: test.description
+      },
+      timeout
+    )
   end
 
   ## Helpers

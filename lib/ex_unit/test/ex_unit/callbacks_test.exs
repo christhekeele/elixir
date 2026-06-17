@@ -13,6 +13,11 @@ defmodule ExUnit.CallbacksTest do
     [counter: []]
   end
 
+  defp no_formatters! do
+    ExUnit.configure(formatters: [])
+    on_exit(fn -> ExUnit.configure(formatters: [ExUnit.CLIFormatter]) end)
+  end
+
   test "callbacks run custom code with context" do
     defmodule CallbacksTest do
       use ExUnit.Case
@@ -212,11 +217,6 @@ defmodule ExUnit.CallbacksTest do
     assert capture_io(fn -> ExUnit.run() end) =~ "Failed: 2 tests"
   end
 
-  defp no_formatters! do
-    ExUnit.configure(formatters: [])
-    on_exit(fn -> ExUnit.configure(formatters: [ExUnit.CLIFormatter]) end)
-  end
-
   test "exits with shutdown reason" do
     defmodule OnExitAliveTest do
       use ExUnit.Case
@@ -354,29 +354,29 @@ defmodule ExUnit.CallbacksTest do
            """
   end
 
-  test "on_exit accepts optional context" do
+  test "on_exit accepts optional result" do
     defmodule OnExitOptionalContextTest do
       use ExUnit.Case
 
       setup do
-        on_exit(fn %ExUnit.Test{state: {:failed, _}} ->
-          IO.puts("on_exit setup run with context")
+        on_exit(fn %ExUnit.Test.Result{state: {:failed, _}} ->
+          IO.puts("on_exit setup run with result")
         end)
 
         :ok
       end
 
       setup_all do
-        on_exit(fn %ExUnit.TestModule{name: ExUnit.CallbacksTest.OnExitOptionalContextTest} ->
-          IO.puts("on_exit setup_all run with context")
+        on_exit(fn %ExUnit.TestModule.Result{name: ExUnit.CallbacksTest.OnExitOptionalContextTest} ->
+          IO.puts("on_exit setup_all run with result")
         end)
 
         :ok
       end
 
       test "ok" do
-        on_exit(fn %ExUnit.Test{state: {:failed, _}} ->
-          IO.puts("simple on_exit run with context")
+        on_exit(fn %ExUnit.Test.Result{state: {:failed, _}} ->
+          IO.puts("simple on_exit run with result")
         end)
 
         flunk("oops")
@@ -387,9 +387,9 @@ defmodule ExUnit.CallbacksTest do
     output = capture_io(fn -> ExUnit.run() end)
 
     assert output =~ """
-           simple on_exit run with context
-           on_exit setup run with context
-           on_exit setup_all run with context
+           simple on_exit run with result
+           on_exit setup run with result
+           on_exit setup_all run with result
            """
   end
 
@@ -399,11 +399,11 @@ defmodule ExUnit.CallbacksTest do
 
       test "ok" do
         on_exit(fn ->
-          IO.puts("simple on_exit setup run no context")
+          IO.puts("simple on_exit setup run no result")
         end)
 
-        on_exit(fn %ExUnit.Test{state: {:failed, _}} ->
-          IO.puts("simple on_exit setup run with context")
+        on_exit(fn %ExUnit.Test.Result{state: {:failed, _}} ->
+          IO.puts("simple on_exit setup run with result")
         end)
 
         flunk("oops")
@@ -414,8 +414,8 @@ defmodule ExUnit.CallbacksTest do
     output = capture_io(fn -> ExUnit.run() end)
 
     assert output =~ """
-           simple on_exit setup run with context
-           simple on_exit setup run no context
+           simple on_exit setup run with result
+           simple on_exit setup run no result
            """
   end
 

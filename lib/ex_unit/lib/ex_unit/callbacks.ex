@@ -472,10 +472,10 @@ defmodule ExUnit.Callbacks do
   example, use the same `name_or_ref` across multiple `on_exit/2`
   calls.
 
-  The `callback` may optionally accept a single argument. If called inside
-  a `setup/1` callback or inside a test, it is provided an `ExUnit.Test` struct.
-  If called inside a `setup_all/1` callback then it is provided
-  an `ExUnit.TestModule` struct.
+  The `callback` may optionally accept a single parameter. If `on_exit/2` is
+  called inside a `setup/1` callback or inside a test, this argument will be
+  an `ExUnit.Test.Result` struct. If called inside a `setup_all/1` callback
+  then it will be an `ExUnit.TestModule.Result` struct.
 
   If `on_exit/2` is called inside `setup/1` or inside a test, it's
   executed in a blocking fashion after the test exits and *before
@@ -514,7 +514,7 @@ defmodule ExUnit.Callbacks do
       setup do
         File.write!("keep_if_failed.json", "{}")
         on_exit(fn
-          %ExUnit.Test{state: {:failed, _}} -> :ok
+          %ExUnit.Test.Result{state: {:failed, _}} -> :ok
           _ -> File.rm!("keep_if_failed.json")
         end)
       end

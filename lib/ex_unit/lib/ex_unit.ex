@@ -178,6 +178,45 @@ defmodule ExUnit do
             parameters: map,
             description: String.t()
           }
+
+    defmodule Result do
+      @moduledoc """
+      A struct that keeps information about a single concluded test's execution.
+
+      It is received by callbacks given to `ExUnit.Callbacks.on_exit/2` in
+      `ExUnit.Case.test/2` and `ExUnit.Callbacks.setup/1`,
+      and contains the following fields:
+
+        * `:name` - the test name. This is the function name in the test module,
+          which is truncated and hashed when above 250 characters
+        * `:module` - the test module
+        * `:description` - the test description (the name without truncation)
+        * `:state` - the finished test state (see `t:ExUnit.state/0`)
+        * `:time` - the duration in microseconds of the test's runtime
+        * `:tags` - the test tags
+        * `:parameters` - the test parameters
+
+      """
+      defstruct [
+        :name,
+        :description,
+        :module,
+        :state,
+        time: 0,
+        tags: %{},
+        parameters: %{}
+      ]
+
+      @type t :: %__MODULE__{
+              name: atom,
+              module: module,
+              state: ExUnit.state(),
+              time: non_neg_integer,
+              tags: map,
+              parameters: map,
+              description: String.t()
+            }
+    end
   end
 
   defmodule TestModule do
@@ -187,17 +226,11 @@ defmodule ExUnit do
     It is received by formatters and contains the following fields:
 
       * `:file` - (since v1.11.0) the file of the test module
-
       * `:name` - the test module name
-
       * `:parameters` - (since v1.18.0) the test module parameters
-
       * `:setup_all?` - (since v1.18.0) if the test module requires a setup all
-
       * `:state` - the test error state (see `t:ExUnit.state/0`)
-
       * `:tags` - all tags in this module
-
       * `:tests` - all tests in this module
 
     """
@@ -212,6 +245,31 @@ defmodule ExUnit do
             tags: map,
             tests: [ExUnit.Test.t()]
           }
+
+    defmodule Result do
+      @moduledoc """
+        A struct that keeps information about a single concluded test module's execution.
+
+        It is received by callbacks given to `ExUnit.Callbacks.on_exit/2` in
+        `ExUnit.Callbacks.setup_all/1`, and contains the following fields:
+
+        * `:file` - the file of the test module
+        * `:name` - the test module name
+        * `:parameters` - the test module parameters
+        * `:state` - the test error state (see `t:ExUnit.state/0`)
+        * `:tags` - all tags in this module
+
+      """
+      defstruct [:file, :name, :state, parameters: %{}, tags: %{}]
+
+      @type t :: %__MODULE__{
+              file: binary(),
+              name: module,
+              parameters: map(),
+              state: ExUnit.state(),
+              tags: map
+            }
+    end
   end
 
   defmodule TestCase do
