@@ -256,6 +256,187 @@ defmodule ExUnit.CallbacksTest do
     assert output =~ "Result: 1 passed"
   end
 
+  test "test/2 on_exit/2 monitors shutdown reason for passing tests" do
+    defmodule TestOnExitPassingShutdownReasonTest do
+      use ExUnit.Case
+
+      test "passes" do
+        parent = self()
+
+        on_exit(fn ->
+          ref = Process.monitor(parent)
+
+          receive do
+            {:DOWN, ^ref, :process, _, reason} -> IO.puts("Shutdown reason: #{inspect(reason)}")
+          end
+        end)
+
+        assert true
+      end
+    end
+
+    output = capture_io(fn -> ExUnit.run() end)
+    assert output =~ "Shutdown reason: :noproc"
+  end
+
+  test "test/2 on_exit/2 monitors shutdown reason for failing tests" do
+    defmodule TestOnExitFailingShutdownReasonTest do
+      use ExUnit.Case
+
+      test "fails" do
+        parent = self()
+
+        on_exit(fn ->
+          ref = Process.monitor(parent)
+
+          receive do
+            {:DOWN, ^ref, :process, _, reason} -> IO.puts("Shutdown reason: #{inspect(reason)}")
+          end
+        end)
+
+        assert false
+      end
+    end
+
+    output = capture_io(fn -> ExUnit.run() end)
+    assert output =~ "Shutdown reason: :noproc"
+  end
+
+  test "setup/1 on_exit/2 monitors shutdown reason for passing tests" do
+    defmodule SetupOnExitPassingShutdownReasonTest do
+      use ExUnit.Case
+
+      setup do
+        parent = self()
+
+        on_exit(fn ->
+          ref = Process.monitor(parent)
+
+          receive do
+            {:DOWN, ^ref, :process, _, reason} -> IO.puts("Shutdown reason: #{inspect(reason)}")
+          end
+        end)
+
+        :ok
+      end
+
+      test "passes" do
+        assert true
+      end
+    end
+
+    output = capture_io(fn -> ExUnit.run() end)
+    assert output =~ "Shutdown reason: :noproc"
+  end
+
+  test "setup/1 on_exit/2 monitors shutdown reason for failing tests" do
+    defmodule SetupOnExitFailingShutdownReasonTest do
+      use ExUnit.Case
+
+      setup do
+        parent = self()
+
+        on_exit(fn ->
+          ref = Process.monitor(parent)
+
+          receive do
+            {:DOWN, ^ref, :process, _, reason} -> IO.puts("Shutdown reason: #{inspect(reason)}")
+          end
+        end)
+
+        :ok
+      end
+
+      test "fails" do
+        assert false
+      end
+    end
+
+    output = capture_io(fn -> ExUnit.run() end)
+    assert output =~ "Shutdown reason: :noproc"
+  end
+
+  test "setup_all/1 on_exit/2 monitors shutdown reason for passing tests" do
+    defmodule SetupAllOnExitPassingShutdownReasonTest do
+      use ExUnit.Case
+
+      setup_all do
+        parent = self()
+
+        on_exit(fn ->
+          ref = Process.monitor(parent)
+
+          receive do
+            {:DOWN, ^ref, :process, _, reason} -> IO.puts("Shutdown reason: #{inspect(reason)}")
+          end
+        end)
+
+        :ok
+      end
+
+      test "passes" do
+        assert true
+      end
+    end
+
+    output = capture_io(fn -> ExUnit.run() end)
+    assert output =~ "Shutdown reason: :noproc"
+  end
+
+  test "setup_all/1 on_exit/2 monitors shutdown reason for failing tests" do
+    defmodule SetupAllOnExitFailingShutdownReasonTest do
+      use ExUnit.Case
+
+      setup_all do
+        parent = self()
+
+        on_exit(fn ->
+          ref = Process.monitor(parent)
+
+          receive do
+            {:DOWN, ^ref, :process, _, reason} -> IO.puts("Shutdown reason: #{inspect(reason)}")
+          end
+        end)
+
+        :ok
+      end
+
+      test "failse" do
+        assert false
+      end
+    end
+
+    output = capture_io(fn -> ExUnit.run() end)
+    assert output =~ "Shutdown reason: :noproc"
+  end
+
+  test "setup_all/1 on_exit/2 monitors shutdown reason for invalid tests" do
+    defmodule SetupAllOnExitInvalidShutdownReasonTest do
+      use ExUnit.Case
+
+      setup_all do
+        parent = self()
+
+        on_exit(fn ->
+          ref = Process.monitor(parent)
+
+          receive do
+            {:DOWN, ^ref, :process, _, reason} -> IO.puts("Shutdown reason: #{inspect(reason)}")
+          end
+        end)
+
+        raise "fail setup_all to invalidate tests"
+      end
+
+      test "invalid setup_all" do
+        assert true
+      end
+    end
+
+    output = capture_io(fn -> ExUnit.run() end)
+    assert output =~ "Shutdown reason: :noproc"
+  end
+
   test "runs multiple on_exit exits and overrides by ref" do
     defmodule OnExitSuccessTest do
       use ExUnit.Case
