@@ -256,185 +256,108 @@ defmodule ExUnit.CallbacksTest do
     assert output =~ "Result: 1 passed"
   end
 
-  test "test/2 on_exit/2 monitors shutdown reason for passing tests" do
-    defmodule TestOnExitPassingShutdownReasonTest do
+  test "on_exit can monitor shutdown reason via Task message" do
+    # Approach #1: use a Task to monitor the test process,
+    # and message the on_exit callback with its exit reason.
+    defmodule OnExitTaskMessageTest do
       use ExUnit.Case
 
-      test "passes" do
-        parent = self()
+      test "ok" do
+        test_process_pid = self()
+
+        test_process_monitor_pid =
+          start_supervised!({Task,
+           fn ->
+             test_process_monitor = Process.monitor(test_process_pid)
+             send(test_process_pid, {self(), :test_process_monitor_ready})
+
+             receive do
+               {:DOWN, ^test_process_monitor, :process, _, reason} ->
+                 # The Task needs to know the on_exit pid in advance when it is defined,
+                 # which is impossible, before on_exit has started, to send a message to it.
+                 # Even if it could, on_exist has not yet started, so on_exit would not
+                 # be around to receive the message.
+                 # FAILURE: undefined variable "on_exit_pid"
+                 send(on_exit_pid, {:test_process_exit_reason, reason})
+             end
+           end})
 
         on_exit(fn ->
-          ref = Process.monitor(parent)
-
           receive do
-            {:DOWN, ^ref, :process, _, reason} -> IO.puts("Shutdown reason: #{inspect(reason)}")
+            # Even if we could give the test_process_monitor this on_exit's pid
+            # in advance of it starting, to send this message, by the time the Task
+            # has observed the test_process's exit status and tried to send this message,
+            # on_exit may not yet be up to receive this message.
+            # We could hack this with a sleep but that would be more costly
+            # to test suites than sending an atom to the on_exit process.
+            {^test_process_monitor_pid, {:test_process_exit_reason, reason}} ->
+              IO.puts("test process exited with reason: #{inspect(reason)}")
           end
         end)
 
-        assert true
+        receive do
+          {^test_process_monitor_pid, :test_process_monitor_ready} ->
+            # Continue test/setup
+            assert true
+        end
       end
     end
 
     output = capture_io(fn -> ExUnit.run() end)
-    assert output =~ "Shutdown reason: :noproc"
+    assert output =~ "test process exited with reason: :normal"
   end
 
-  test "test/2 on_exit/2 monitors shutdown reason for failing tests" do
-    defmodule TestOnExitFailingShutdownReasonTest do
+  test "on_exit can monitor shutdown reason via Task monitor" do
+    # Approach #2: use a Task to monitor the test process,
+    # exit the monitor with the same reason,
+    # and have the on_exit callback monitor the task monitor for an exit reason.
+    defmodule OnExitTaskMonitorTest do
       use ExUnit.Case
 
-      test "fails" do
-        parent = self()
+      test "ok" do
+        test_process_pid = self()
+
+        test_process_monitor_pid =
+          start_supervised!({Task,
+           fn ->
+             test_process_monitor = Process.monitor(test_process_pid)
+             send(test_process_pid, {self(), :test_process_monitor_ready})
+
+             receive do
+               {:DOWN, ^test_process_monitor, :process, _, reason} ->
+                 # The test process monitor could exit with the same reason,
+                 # and be monitored by the on_exit process, but by the time
+                 # the on_exist process has started to monitor it, it will also
+                 # already be down.
+                 # We could hack this with a sleep but that would be more costly
+                 # to test suites than sending an atom to the on_exit process.
+                 exit(reason)
+             end
+           end})
 
         on_exit(fn ->
-          ref = Process.monitor(parent)
+          # By the time on_exit starts, the Task will not be alive to monitor,
+          test_process_monitor_monitor = Process.monitor(test_process_monitor_pid)
 
           receive do
-            {:DOWN, ^ref, :process, _, reason} -> IO.puts("Shutdown reason: #{inspect(reason)}")
+            # So this reason will still always be :noproc, not representative
+            # of the test process's exit status.
+            {:DOWN, ^test_process_monitor_monitor, :process, _, reason} ->
+              IO.puts("test process exited with reason: #{inspect(reason)}")
           end
         end)
 
-        assert false
+        receive do
+          {^test_process_monitor_pid, :test_process_monitor_ready} ->
+            # Continue test/setup
+            assert true
+        end
       end
     end
 
     output = capture_io(fn -> ExUnit.run() end)
-    assert output =~ "Shutdown reason: :noproc"
-  end
-
-  test "setup/1 on_exit/2 monitors shutdown reason for passing tests" do
-    defmodule SetupOnExitPassingShutdownReasonTest do
-      use ExUnit.Case
-
-      setup do
-        parent = self()
-
-        on_exit(fn ->
-          ref = Process.monitor(parent)
-
-          receive do
-            {:DOWN, ^ref, :process, _, reason} -> IO.puts("Shutdown reason: #{inspect(reason)}")
-          end
-        end)
-
-        :ok
-      end
-
-      test "passes" do
-        assert true
-      end
-    end
-
-    output = capture_io(fn -> ExUnit.run() end)
-    assert output =~ "Shutdown reason: :noproc"
-  end
-
-  test "setup/1 on_exit/2 monitors shutdown reason for failing tests" do
-    defmodule SetupOnExitFailingShutdownReasonTest do
-      use ExUnit.Case
-
-      setup do
-        parent = self()
-
-        on_exit(fn ->
-          ref = Process.monitor(parent)
-
-          receive do
-            {:DOWN, ^ref, :process, _, reason} -> IO.puts("Shutdown reason: #{inspect(reason)}")
-          end
-        end)
-
-        :ok
-      end
-
-      test "fails" do
-        assert false
-      end
-    end
-
-    output = capture_io(fn -> ExUnit.run() end)
-    assert output =~ "Shutdown reason: :noproc"
-  end
-
-  test "setup_all/1 on_exit/2 monitors shutdown reason for passing tests" do
-    defmodule SetupAllOnExitPassingShutdownReasonTest do
-      use ExUnit.Case
-
-      setup_all do
-        parent = self()
-
-        on_exit(fn ->
-          ref = Process.monitor(parent)
-
-          receive do
-            {:DOWN, ^ref, :process, _, reason} -> IO.puts("Shutdown reason: #{inspect(reason)}")
-          end
-        end)
-
-        :ok
-      end
-
-      test "passes" do
-        assert true
-      end
-    end
-
-    output = capture_io(fn -> ExUnit.run() end)
-    assert output =~ "Shutdown reason: :noproc"
-  end
-
-  test "setup_all/1 on_exit/2 monitors shutdown reason for failing tests" do
-    defmodule SetupAllOnExitFailingShutdownReasonTest do
-      use ExUnit.Case
-
-      setup_all do
-        parent = self()
-
-        on_exit(fn ->
-          ref = Process.monitor(parent)
-
-          receive do
-            {:DOWN, ^ref, :process, _, reason} -> IO.puts("Shutdown reason: #{inspect(reason)}")
-          end
-        end)
-
-        :ok
-      end
-
-      test "failse" do
-        assert false
-      end
-    end
-
-    output = capture_io(fn -> ExUnit.run() end)
-    assert output =~ "Shutdown reason: :noproc"
-  end
-
-  test "setup_all/1 on_exit/2 monitors shutdown reason for invalid tests" do
-    defmodule SetupAllOnExitInvalidShutdownReasonTest do
-      use ExUnit.Case
-
-      setup_all do
-        parent = self()
-
-        on_exit(fn ->
-          ref = Process.monitor(parent)
-
-          receive do
-            {:DOWN, ^ref, :process, _, reason} -> IO.puts("Shutdown reason: #{inspect(reason)}")
-          end
-        end)
-
-        raise "fail setup_all to invalidate tests"
-      end
-
-      test "invalid setup_all" do
-        assert true
-      end
-    end
-
-    output = capture_io(fn -> ExUnit.run() end)
-    assert output =~ "Shutdown reason: :noproc"
+    # FAILURE: output =~ "test process exited with reason: :noproc"
+    assert output =~ "test process exited with reason: :normal"
   end
 
   test "runs multiple on_exit exits and overrides by ref" do
