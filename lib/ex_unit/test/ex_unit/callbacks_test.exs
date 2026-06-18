@@ -259,6 +259,7 @@ defmodule ExUnit.CallbacksTest do
   test "on_exit can monitor shutdown reason via Task message" do
     # Approach #1: use a Task to monitor the test process,
     # and message the on_exit callback with its exit reason.
+    # Problem: we do not know the on_exit_pid to send a message to.
     defmodule OnExitTaskMessageTest do
       use ExUnit.Case
 
@@ -311,6 +312,7 @@ defmodule ExUnit.CallbacksTest do
     # Approach #2: use a Task to monitor the test process,
     # exit the monitor with the same reason,
     # and have the on_exit callback monitor the task monitor for an exit reason.
+    # Problem: introducing an intermediary monitor has the same :noproc race condition.
     defmodule OnExitTaskMonitorTest do
       use ExUnit.Case
 
@@ -357,6 +359,66 @@ defmodule ExUnit.CallbacksTest do
 
     output = capture_io(fn -> ExUnit.run() end)
     # FAILURE: output =~ "test process exited with reason: :noproc"
+    assert output =~ "test process exited with reason: :normal"
+  end
+
+  test "on_exit can monitor shutdown reason via Task blocking" do
+    # Approach #3: use a Task to monitor the test process,
+    # have it block until on_exit starts and sends it a message,
+    # then forward the test process exit reason
+    # to the on_exit callback process.
+    # Problem: we need more state to manage when the on_exit is ready to receive.
+    defmodule OnExitTaskBlockingTest do
+      use ExUnit.Case
+
+      test "ok" do
+        test_process_pid = self()
+
+        test_process_monitor_pid =
+          start_supervised!({Task,
+           fn ->
+             test_process_monitor = Process.monitor(test_process_pid)
+             send(test_process_pid, {self(), :test_process_monitor_ready})
+
+             receive do
+               {:on_exit_ready, on_exit_pid} ->
+                 # The test process monitor could block until the on_exit process
+                 # is ready, and only then proceed to message it with the down reason.
+                 # However, this only works for a single on_exit callback, and
+                 # could not know how many on_exit callbacks it needs to wait to be ready
+                 # to send the message to without extra co-ordination, again
+                 # outweighing the cost of sending an atom to the on_exit process.
+                 receive do
+                   # Regardless, this approach does not work for the single on_exit case,
+                   # because the first blocking receive of this needs to loop until received,
+                   # meaning we are introducing the need for an Agent to track a state machine,
+                   # which again outweights the cost of sending an atom to the on_exit process.
+                   {:DOWN, ^test_process_monitor, :process, _, reason} ->
+                     send(on_exit_pid, {:test_process_exited, reason})
+                 end
+
+                 # FAILURE: (ExUnit.TimeoutError) test timed out after 60000ms
+             end
+           end})
+
+        on_exit(fn ->
+          send(test_process_monitor_pid, {:on_exit_ready, self()})
+
+          receive do
+            {:test_process_exited, reason} ->
+              IO.puts("test process exited with reason: #{inspect(reason)}")
+          end
+        end)
+
+        receive do
+          {^test_process_monitor_pid, :test_process_monitor_ready} ->
+            # Continue test/setup
+            assert true
+        end
+      end
+    end
+
+    output = capture_io(fn -> ExUnit.run() end)
     assert output =~ "test process exited with reason: :normal"
   end
 
